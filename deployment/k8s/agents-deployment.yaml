@@ -1,0 +1,762 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: revoagent-agents
+  labels:
+    name: revoagent-agents
+    environment: production
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agent-config
+  namespace: revoagent-agents
+data:
+  REDIS_URL: "redis://redis-service:6379/0"
+  POSTGRES_URL: "postgresql://revoagent:password@postgres-service:5432/revoagent"
+  MODEL_CACHE_SIZE: "1000"
+  MAX_CONCURRENT_REQUESTS: "50"
+  LOG_LEVEL: "INFO"
+  METRICS_ENABLED: "true"
+  COST_OPTIMIZATION_ENABLED: "true"
+  LOCAL_MODEL_PRIORITY: "deepseek-r1,llama-3.1,gpt-4,claude-3.5"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: agent-secrets
+  namespace: revoagent-agents
+type: Opaque
+data:
+  OPENAI_API_KEY: ""  # Base64 encoded
+  ANTHROPIC_API_KEY: ""  # Base64 encoded
+  JWT_SECRET_KEY: ""  # Base64 encoded
+  DATABASE_PASSWORD: ""  # Base64 encoded
+
+---
+# Code Analysis Agent Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: code-analysis-agent
+  namespace: revoagent-agents
+  labels:
+    app: code-analysis-agent
+    component: agent
+    tier: processing
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: code-analysis-agent
+  template:
+    metadata:
+      labels:
+        app: code-analysis-agent
+        component: agent
+        tier: processing
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: code-analysis-agent
+        image: revoagent/code-analysis-agent:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8081
+          name: metrics
+        env:
+        - name: AGENT_TYPE
+          value: "code_analysis"
+        - name: AGENT_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        envFrom:
+        - configMapRef:
+            name: agent-config
+        - secretRef:
+            name: agent-secrets
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        volumeMounts:
+        - name: model-cache
+          mountPath: /app/models
+        - name: temp-storage
+          mountPath: /tmp
+      volumes:
+      - name: model-cache
+        persistentVolumeClaim:
+          claimName: model-cache-pvc
+      - name: temp-storage
+        emptyDir: {}
+      nodeSelector:
+        workload-type: "compute-intensive"
+      tolerations:
+      - key: "compute-intensive"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+
+---
+# Debug Detective Agent Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: debug-detective-agent
+  namespace: revoagent-agents
+  labels:
+    app: debug-detective-agent
+    component: agent
+    tier: processing
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: debug-detective-agent
+  template:
+    metadata:
+      labels:
+        app: debug-detective-agent
+        component: agent
+        tier: processing
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: debug-detective-agent
+        image: revoagent/debug-detective-agent:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8081
+          name: metrics
+        env:
+        - name: AGENT_TYPE
+          value: "debug_detective"
+        - name: AGENT_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        envFrom:
+        - configMapRef:
+            name: agent-config
+        - secretRef:
+            name: agent-secrets
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        volumeMounts:
+        - name: debug-cache
+          mountPath: /app/debug_cache
+      volumes:
+      - name: debug-cache
+        emptyDir:
+          sizeLimit: 1Gi
+
+---
+# Workflow Intelligence Agent Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workflow-intelligence-agent
+  namespace: revoagent-agents
+  labels:
+    app: workflow-intelligence-agent
+    component: agent
+    tier: coordination
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: workflow-intelligence-agent
+  template:
+    metadata:
+      labels:
+        app: workflow-intelligence-agent
+        component: agent
+        tier: coordination
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: workflow-intelligence-agent
+        image: revoagent/workflow-intelligence-agent:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8081
+          name: metrics
+        env:
+        - name: AGENT_TYPE
+          value: "workflow_intelligence"
+        - name: AGENT_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        envFrom:
+        - configMapRef:
+            name: agent-config
+        - secretRef:
+            name: agent-secrets
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+
+---
+# Security Auditor Agent Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: security-auditor-agent
+  namespace: revoagent-agents
+  labels:
+    app: security-auditor-agent
+    component: agent
+    tier: security
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: security-auditor-agent
+  template:
+    metadata:
+      labels:
+        app: security-auditor-agent
+        component: agent
+        tier: security
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: security-auditor-agent
+        image: revoagent/security-auditor-agent:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8081
+          name: metrics
+        env:
+        - name: AGENT_TYPE
+          value: "security_auditor"
+        - name: AGENT_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        envFrom:
+        - configMapRef:
+            name: agent-config
+        - secretRef:
+            name: agent-secrets
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+
+---
+# Performance Optimizer Agent Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: performance-optimizer-agent
+  namespace: revoagent-agents
+  labels:
+    app: performance-optimizer-agent
+    component: agent
+    tier: optimization
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: performance-optimizer-agent
+  template:
+    metadata:
+      labels:
+        app: performance-optimizer-agent
+        component: agent
+        tier: optimization
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: performance-optimizer-agent
+        image: revoagent/performance-optimizer-agent:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8081
+          name: metrics
+        env:
+        - name: AGENT_TYPE
+          value: "performance_optimizer"
+        - name: AGENT_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        envFrom:
+        - configMapRef:
+            name: agent-config
+        - secretRef:
+            name: agent-secrets
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+
+---
+# Multi-Agent Chat Coordinator
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: multi-agent-chat-coordinator
+  namespace: revoagent-agents
+  labels:
+    app: multi-agent-chat-coordinator
+    component: coordinator
+    tier: communication
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: multi-agent-chat-coordinator
+  template:
+    metadata:
+      labels:
+        app: multi-agent-chat-coordinator
+        component: coordinator
+        tier: communication
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: multi-agent-chat-coordinator
+        image: revoagent/multi-agent-chat:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8081
+          name: metrics
+        - containerPort: 8082
+          name: websocket
+        env:
+        - name: AGENT_TYPE
+          value: "chat_coordinator"
+        - name: WEBSOCKET_PORT
+          value: "8082"
+        - name: AGENT_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        envFrom:
+        - configMapRef:
+            name: agent-config
+        - secretRef:
+            name: agent-secrets
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+
+---
+# Services for Agent Communication
+apiVersion: v1
+kind: Service
+metadata:
+  name: code-analysis-agent-service
+  namespace: revoagent-agents
+  labels:
+    app: code-analysis-agent
+spec:
+  selector:
+    app: code-analysis-agent
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  - name: metrics
+    port: 8081
+    targetPort: 8081
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: debug-detective-agent-service
+  namespace: revoagent-agents
+  labels:
+    app: debug-detective-agent
+spec:
+  selector:
+    app: debug-detective-agent
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  - name: metrics
+    port: 8081
+    targetPort: 8081
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workflow-intelligence-agent-service
+  namespace: revoagent-agents
+  labels:
+    app: workflow-intelligence-agent
+spec:
+  selector:
+    app: workflow-intelligence-agent
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  - name: metrics
+    port: 8081
+    targetPort: 8081
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: security-auditor-agent-service
+  namespace: revoagent-agents
+  labels:
+    app: security-auditor-agent
+spec:
+  selector:
+    app: security-auditor-agent
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  - name: metrics
+    port: 8081
+    targetPort: 8081
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: performance-optimizer-agent-service
+  namespace: revoagent-agents
+  labels:
+    app: performance-optimizer-agent
+spec:
+  selector:
+    app: performance-optimizer-agent
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  - name: metrics
+    port: 8081
+    targetPort: 8081
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: multi-agent-chat-service
+  namespace: revoagent-agents
+  labels:
+    app: multi-agent-chat-coordinator
+spec:
+  selector:
+    app: multi-agent-chat-coordinator
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  - name: metrics
+    port: 8081
+    targetPort: 8081
+  - name: websocket
+    port: 8082
+    targetPort: 8082
+  type: ClusterIP
+
+---
+# Horizontal Pod Autoscaler for Code Analysis Agent
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: code-analysis-agent-hpa
+  namespace: revoagent-agents
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: code-analysis-agent
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+
+---
+# Horizontal Pod Autoscaler for Debug Detective Agent
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: debug-detective-agent-hpa
+  namespace: revoagent-agents
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: debug-detective-agent
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# Persistent Volume Claim for Model Cache
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: model-cache-pvc
+  namespace: revoagent-agents
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: fast-ssd
+
+---
+# Network Policy for Agent Communication
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: agent-network-policy
+  namespace: revoagent-agents
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: revoagent-core
+    - namespaceSelector:
+        matchLabels:
+          name: revoagent-monitoring
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8081
+    - protocol: TCP
+      port: 8082
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: revoagent-core
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 5432
+    - protocol: TCP
+      port: 6379
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+
+---
+# Pod Disruption Budget for High Availability
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: code-analysis-agent-pdb
+  namespace: revoagent-agents
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: code-analysis-agent
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: multi-agent-chat-pdb
+  namespace: revoagent-agents
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: multi-agent-chat-coordinator

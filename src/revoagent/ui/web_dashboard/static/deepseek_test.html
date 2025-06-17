@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepSeek R1 Integration Test - reVoAgent</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Courier New', monospace;
+            border-radius: 8px;
+            padding: 16px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .status-online { background-color: #10b981; }
+        .status-loading { background-color: #f59e0b; animation: pulse 2s infinite; }
+        .status-error { background-color: #ef4444; }
+        .status-offline { background-color: #6b7280; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div id="app">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center py-4">
+                    <div class="flex items-center">
+                        <h1 class="text-2xl font-bold text-gray-900">🚀 reVoAgent</h1>
+                        <span class="ml-3 px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
+                            DeepSeek R1 Integration Test
+                        </span>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="flex items-center">
+                            <div :class="['status-indicator', getStatusClass()]"></div>
+                            <span class="text-sm font-medium">{{ connectionStatus }}</span>
+                        </div>
+                        <button @click="refreshAll" 
+                                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-sync-alt mr-2"></i>Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Model Status Section -->
+            <div class="bg-white rounded-lg shadow-sm border mb-8">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">
+                        <i class="fas fa-brain mr-2 text-blue-600"></i>
+                        DeepSeek R1 Model Status
+                    </h2>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Model Info -->
+                        <div class="space-y-4">
+                            <h3 class="font-medium text-gray-900">Model Information</h3>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-500">Model ID:</span>
+                                    <span class="font-mono">{{ modelStatus.id || 'deepseek-r1-0528' }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-500">Name:</span>
+                                    <span>{{ modelStatus.name || 'DeepSeek R1 0528' }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-500">Size:</span>
+                                    <span>{{ modelStatus.size || '70B' }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-500">Status:</span>
+                                    <span :class="getModelStatusClass()">{{ modelStatus.status || 'Unknown' }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- System Resources -->
+                        <div class="space-y-4">
+                            <h3 class="font-medium text-gray-900">System Resources</h3>
+                            <div class="space-y-3">
+                                <div>
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <span class="text-gray-500">CPU Usage</span>
+                                        <span>{{ systemStats.cpu_percent || 0 }}%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="bg-blue-600 h-2 rounded-full progress-bar" 
+                                             :style="{width: (systemStats.cpu_percent || 0) + '%'}"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <span class="text-gray-500">Memory Usage</span>
+                                        <span>{{ systemStats.memory_percent || 0 }}%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="bg-green-600 h-2 rounded-full progress-bar" 
+                                             :style="{width: (systemStats.memory_percent || 0) + '%'}"></div>
+                                    </div>
+                                </div>
+                                <div class="text-sm">
+                                    <span class="text-gray-500">Memory:</span>
+                                    <span class="ml-2">{{ formatMemory(systemStats.memory_used_gb) }} / {{ formatMemory(systemStats.memory_total_gb) }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Model Actions -->
+                        <div class="space-y-4">
+                            <h3 class="font-medium text-gray-900">Model Actions</h3>
+                            <div class="space-y-2">
+                                <button @click="loadModel" 
+                                        :disabled="modelLoading"
+                                        class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                    <div v-if="modelLoading" class="flex items-center justify-center">
+                                        <div class="loading-spinner mr-2"></div>
+                                        Loading...
+                                    </div>
+                                    <div v-else class="flex items-center justify-center">
+                                        <i class="fas fa-play mr-2"></i>
+                                        Load Model
+                                    </div>
+                                </button>
+                                <button @click="unloadModel" 
+                                        :disabled="modelLoading"
+                                        class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                    <i class="fas fa-stop mr-2"></i>
+                                    Unload Model
+                                </button>
+                                <button @click="checkModelStatus" 
+                                        class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                                    <i class="fas fa-info-circle mr-2"></i>
+                                    Check Status
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Code Generation Section -->
+            <div class="bg-white rounded-lg shadow-sm border mb-8">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">
+                        <i class="fas fa-code mr-2 text-green-600"></i>
+                        AI Code Generation Test
+                    </h2>
+                </div>
+                <div class="p-6">
+                    <!-- Generation Form -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Task Description</label>
+                                <textarea v-model="codeRequest.task_description" 
+                                          rows="4" 
+                                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                          placeholder="Describe what you want to build..."></textarea>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Language</label>
+                                    <select v-model="codeRequest.language" 
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="python">Python</option>
+                                        <option value="typescript">TypeScript</option>
+                                        <option value="javascript">JavaScript</option>
+                                        <option value="java">Java</option>
+                                        <option value="go">Go</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Framework</label>
+                                    <select v-model="codeRequest.framework" 
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="fastapi">FastAPI</option>
+                                        <option value="react">React</option>
+                                        <option value="express">Express</option>
+                                        <option value="spring">Spring Boot</option>
+                                        <option value="gin">Gin</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Database</label>
+                                <select v-model="codeRequest.database" 
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="postgresql">PostgreSQL</option>
+                                    <option value="mongodb">MongoDB</option>
+                                    <option value="mysql">MySQL</option>
+                                    <option value="sqlite">SQLite</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Features</label>
+                                <div class="space-y-2">
+                                    <label v-for="feature in availableFeatures" :key="feature" class="flex items-center">
+                                        <input type="checkbox" 
+                                               :value="feature" 
+                                               v-model="codeRequest.features"
+                                               class="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                        <span class="text-sm">{{ feature }}</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <button @click="generateCode" 
+                                    :disabled="codeGenerating || !codeRequest.task_description"
+                                    class="w-full px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                                <div v-if="codeGenerating" class="flex items-center justify-center">
+                                    <div class="loading-spinner mr-2"></div>
+                                    Generating Code...
+                                </div>
+                                <div v-else class="flex items-center justify-center">
+                                    <i class="fas fa-magic mr-2"></i>
+                                    Generate Code
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Generation Progress -->
+                    <div v-if="codeGenerating" class="mb-6">
+                        <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
+                            <div class="flex items-center mb-2">
+                                <div class="loading-spinner mr-3"></div>
+                                <span class="text-blue-800 font-medium">{{ generationStatus }}</span>
+                            </div>
+                            <div class="w-full bg-blue-200 rounded-full h-2">
+                                <div class="bg-blue-600 h-2 rounded-full progress-bar" 
+                                     :style="{width: generationProgress + '%'}"></div>
+                            </div>
+                            <div class="text-sm text-blue-600 mt-2">
+                                Estimated time: {{ estimatedTime }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Generation Results -->
+                    <div v-if="generationResult" class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-medium text-gray-900">Generation Results</h3>
+                            <div class="flex items-center space-x-4 text-sm text-gray-500">
+                                <span>Model: {{ generationResult.model_used }}</span>
+                                <span>Quality: {{ generationResult.quality_score }}%</span>
+                                <span>Lines: {{ generationResult.estimated_lines }}</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Generated Code -->
+                        <div class="relative">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm font-medium text-gray-700">Generated Code</span>
+                                <button @click="copyCode" 
+                                        class="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200 transition-colors">
+                                    <i class="fas fa-copy mr-1"></i>Copy
+                                </button>
+                            </div>
+                            <div class="code-block">{{ generationResult.generated_code }}</div>
+                        </div>
+
+                        <!-- Files Created -->
+                        <div v-if="generationResult.files_created && generationResult.files_created.length > 0">
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">Files Created</h4>
+                            <div class="flex flex-wrap gap-2">
+                                <span v-for="file in generationResult.files_created" :key="file"
+                                      class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                                    {{ file }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Real-time Logs Section -->
+            <div class="bg-white rounded-lg shadow-sm border">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-lg font-semibold text-gray-900">
+                            <i class="fas fa-terminal mr-2 text-gray-600"></i>
+                            Real-time Logs
+                        </h2>
+                        <button @click="clearLogs" 
+                                class="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200 transition-colors">
+                            <i class="fas fa-trash mr-1"></i>Clear
+                        </button>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="bg-gray-900 text-green-400 font-mono text-sm rounded-md p-4 h-64 overflow-y-auto">
+                        <div v-for="(log, index) in logs" :key="index" class="mb-1">
+                            <span class="text-gray-500">[{{ log.timestamp }}]</span>
+                            <span :class="getLogClass(log.level)">{{ log.level }}:</span>
+                            {{ log.message }}
+                        </div>
+                        <div v-if="logs.length === 0" class="text-gray-500 italic">
+                            No logs yet. Start by checking model status or generating code.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    connectionStatus: 'Connecting...',
+                    modelStatus: {},
+                    systemStats: {},
+                    modelLoading: false,
+                    codeGenerating: false,
+                    generationProgress: 0,
+                    generationStatus: 'Initializing...',
+                    estimatedTime: '0s',
+                    generationResult: null,
+                    logs: [],
+                    codeRequest: {
+                        task_description: 'Create a REST API for a todo application with user authentication, CRUD operations, and real-time updates',
+                        language: 'python',
+                        framework: 'fastapi',
+                        database: 'postgresql',
+                        features: ['auth', 'tests', 'docs']
+                    },
+                    availableFeatures: ['auth', 'tests', 'docs', 'docker', 'monitoring', 'caching'],
+                    websocket: null
+                }
+            },
+            mounted() {
+                this.initializeWebSocket();
+                this.checkModelStatus();
+                this.addLog('info', 'DeepSeek R1 Integration Test initialized');
+            },
+            methods: {
+                initializeWebSocket() {
+                    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                    const wsUrl = `${protocol}//${window.location.host}/ws`;
+                    
+                    try {
+                        this.websocket = new WebSocket(wsUrl);
+                        
+                        this.websocket.onopen = () => {
+                            this.connectionStatus = 'Connected';
+                            this.addLog('success', 'WebSocket connection established');
+                        };
+                        
+                        this.websocket.onmessage = (event) => {
+                            const message = JSON.parse(event.data);
+                            this.handleWebSocketMessage(message);
+                        };
+                        
+                        this.websocket.onclose = () => {
+                            this.connectionStatus = 'Disconnected';
+                            this.addLog('warning', 'WebSocket connection lost, attempting to reconnect...');
+                            setTimeout(() => this.initializeWebSocket(), 5000);
+                        };
+                        
+                        this.websocket.onerror = (error) => {
+                            this.connectionStatus = 'Error';
+                            this.addLog('error', 'WebSocket error: ' + error.message);
+                        };
+                    } catch (error) {
+                        this.connectionStatus = 'Failed';
+                        this.addLog('error', 'Failed to initialize WebSocket: ' + error.message);
+                    }
+                },
+
+                handleWebSocketMessage(message) {
+                    switch (message.type) {
+                        case 'model_status':
+                            this.modelStatus = message.data;
+                            this.addLog('info', `Model status updated: ${message.data.status}`);
+                            break;
+                        case 'generation_progress':
+                            this.generationProgress = message.data.progress;
+                            this.generationStatus = message.data.status;
+                            this.estimatedTime = message.data.estimated_time;
+                            break;
+                        case 'generation_complete':
+                            this.codeGenerating = false;
+                            this.generationResult = message.data;
+                            this.addLog('success', 'Code generation completed');
+                            break;
+                        case 'system_stats':
+                            this.systemStats = message.data;
+                            break;
+                    }
+                },
+
+                async checkModelStatus() {
+                    try {
+                        this.addLog('info', 'Checking model status...');
+                        const response = await fetch('/api/v1/models/status');
+                        const data = await response.json();
+                        
+                        if (data.models && data.models['deepseek-r1-0528']) {
+                            this.modelStatus = data.models['deepseek-r1-0528'];
+                        }
+                        
+                        if (data.system_stats) {
+                            this.systemStats = data.system_stats;
+                        }
+                        
+                        this.addLog('success', `Model status: ${this.modelStatus.status || 'unknown'}`);
+                    } catch (error) {
+                        this.addLog('error', 'Failed to check model status: ' + error.message);
+                    }
+                },
+
+                async loadModel() {
+                    this.modelLoading = true;
+                    try {
+                        this.addLog('info', 'Loading DeepSeek R1 model...');
+                        const response = await fetch('/api/v1/models/load', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                model_name: 'deepseek-r1-0528',
+                                action: 'load'
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        this.addLog('success', `Model load result: ${result.status}`);
+                        await this.checkModelStatus();
+                    } catch (error) {
+                        this.addLog('error', 'Failed to load model: ' + error.message);
+                    } finally {
+                        this.modelLoading = false;
+                    }
+                },
+
+                async unloadModel() {
+                    this.modelLoading = true;
+                    try {
+                        this.addLog('info', 'Unloading DeepSeek R1 model...');
+                        const response = await fetch('/api/v1/models/load', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                model_name: 'deepseek-r1-0528',
+                                action: 'unload'
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        this.addLog('success', `Model unload result: ${result.status}`);
+                        await this.checkModelStatus();
+                    } catch (error) {
+                        this.addLog('error', 'Failed to unload model: ' + error.message);
+                    } finally {
+                        this.modelLoading = false;
+                    }
+                },
+
+                async generateCode() {
+                    this.codeGenerating = true;
+                    this.generationProgress = 0;
+                    this.generationStatus = 'Initializing code generation...';
+                    this.generationResult = null;
+                    
+                    try {
+                        this.addLog('info', 'Starting code generation with DeepSeek R1...');
+                        
+                        // Simulate progress updates
+                        const progressInterval = setInterval(() => {
+                            if (this.generationProgress < 90) {
+                                this.generationProgress += Math.random() * 10;
+                                this.updateGenerationStatus();
+                            }
+                        }, 500);
+                        
+                        const response = await fetch('/api/v1/agents/code/generate', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(this.codeRequest)
+                        });
+                        
+                        clearInterval(progressInterval);
+                        
+                        const result = await response.json();
+                        
+                        if (result.error) {
+                            this.addLog('error', 'Code generation failed: ' + result.error);
+                        } else {
+                            this.generationResult = result;
+                            this.generationProgress = 100;
+                            this.generationStatus = 'Code generation completed!';
+                            this.addLog('success', `Code generated successfully using ${result.model_used}`);
+                        }
+                    } catch (error) {
+                        this.addLog('error', 'Code generation error: ' + error.message);
+                    } finally {
+                        this.codeGenerating = false;
+                    }
+                },
+
+                updateGenerationStatus() {
+                    const statuses = [
+                        'Loading model...',
+                        'Processing prompt...',
+                        'Generating code structure...',
+                        'Adding implementation details...',
+                        'Optimizing code...',
+                        'Finalizing generation...'
+                    ];
+                    
+                    const index = Math.floor(this.generationProgress / 15);
+                    this.generationStatus = statuses[Math.min(index, statuses.length - 1)];
+                    
+                    const timeRemaining = Math.max(0, 30 - (this.generationProgress / 100 * 30));
+                    this.estimatedTime = `${Math.ceil(timeRemaining)}s`;
+                },
+
+                async refreshAll() {
+                    await this.checkModelStatus();
+                    this.addLog('info', 'Data refreshed');
+                },
+
+                copyCode() {
+                    if (this.generationResult && this.generationResult.generated_code) {
+                        navigator.clipboard.writeText(this.generationResult.generated_code);
+                        this.addLog('info', 'Code copied to clipboard');
+                    }
+                },
+
+                clearLogs() {
+                    this.logs = [];
+                },
+
+                addLog(level, message) {
+                    const timestamp = new Date().toLocaleTimeString();
+                    this.logs.push({ timestamp, level, message });
+                    
+                    // Keep only last 100 logs
+                    if (this.logs.length > 100) {
+                        this.logs = this.logs.slice(-100);
+                    }
+                },
+
+                getStatusClass() {
+                    switch (this.connectionStatus) {
+                        case 'Connected': return 'status-online';
+                        case 'Connecting...': return 'status-loading';
+                        case 'Disconnected': case 'Error': case 'Failed': return 'status-error';
+                        default: return 'status-offline';
+                    }
+                },
+
+                getModelStatusClass() {
+                    switch (this.modelStatus.status) {
+                        case 'loaded': return 'text-green-600 font-medium';
+                        case 'loading': return 'text-yellow-600 font-medium';
+                        case 'error': return 'text-red-600 font-medium';
+                        case 'unloaded': return 'text-gray-600 font-medium';
+                        default: return 'text-gray-400 font-medium';
+                    }
+                },
+
+                getLogClass(level) {
+                    switch (level) {
+                        case 'success': return 'text-green-400';
+                        case 'warning': return 'text-yellow-400';
+                        case 'error': return 'text-red-400';
+                        case 'info': return 'text-blue-400';
+                        default: return 'text-gray-400';
+                    }
+                },
+
+                formatMemory(gb) {
+                    if (!gb) return '0 GB';
+                    return `${gb.toFixed(1)} GB`;
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

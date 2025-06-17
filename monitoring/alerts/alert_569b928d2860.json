@@ -1,0 +1,18 @@
+{
+  "id": "569b928d2860",
+  "rule_name": "test_alert_rule",
+  "severity": "warning",
+  "status": "active",
+  "title": "Test Alert Rule",
+  "description": "Test alert rule",
+  "value": 60.0,
+  "threshold": 50.0,
+  "timestamp": "2025-06-13T02:09:09.477853",
+  "acknowledged_at": null,
+  "resolved_at": null,
+  "acknowledged_by": null,
+  "tags": {
+    "rule": "test_alert_rule",
+    "severity": "warning"
+  }
+}

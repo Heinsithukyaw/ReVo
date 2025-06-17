@@ -1,0 +1,77 @@
+{
+  "test_summary": {
+    "total_tests": 6,
+    "passed_tests": 6,
+    "success_rate": 100.0,
+    "grade": "A+",
+    "timestamp": "2025-06-17T08:15:26.991079"
+  },
+  "test_details": [
+    {
+      "test": "System Startup",
+      "status": "PASS",
+      "details": "System started successfully",
+      "timestamp": "2025-06-17T08:15:11.197997"
+    },
+    {
+      "test": "Backend Health",
+      "status": "PASS",
+      "details": "Status: healthy",
+      "timestamp": "2025-06-17T08:15:21.201404"
+    },
+    {
+      "test": "Port 12000",
+      "status": "PASS",
+      "details": "Port is accessible",
+      "timestamp": "2025-06-17T08:15:21.201698"
+    },
+    {
+      "test": "Port 12001",
+      "status": "PASS",
+      "details": "Port is accessible",
+      "timestamp": "2025-06-17T08:15:21.201850"
+    },
+    {
+      "test": "API /api/models",
+      "status": "PASS",
+      "details": "HTTP 200",
+      "timestamp": "2025-06-17T08:15:21.203784"
+    },
+    {
+      "test": "API /api/health",
+      "status": "PASS",
+      "details": "HTTP 200",
+      "timestamp": "2025-06-17T08:15:21.205457"
+    },
+    {
+      "test": "API /docs",
+      "status": "PASS",
+      "details": "HTTP 200",
+      "timestamp": "2025-06-17T08:15:21.207028"
+    },
+    {
+      "test": "Frontend Access",
+      "status": "PASS",
+      "details": "HTTP 200",
+      "timestamp": "2025-06-17T08:15:21.210841"
+    },
+    {
+      "test": "CORS Configuration",
+      "status": "PASS",
+      "details": "CORS enabled: http://localhost:12000",
+      "timestamp": "2025-06-17T08:15:21.212433"
+    },
+    {
+      "test": "Chat API",
+      "status": "PASS",
+      "details": "Response received: 139 chars",
+      "timestamp": "2025-06-17T08:15:21.214973"
+    },
+    {
+      "test": "System Shutdown",
+      "status": "PASS",
+      "details": "System stopped cleanly",
+      "timestamp": "2025-06-17T08:15:26.990976"
+    }
+  ]
+}

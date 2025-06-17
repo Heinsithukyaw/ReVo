@@ -1,0 +1,137 @@
+# 💾 reVoAgent Persistent Volume Claims
+# Application Data PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: revoagent-data-pvc
+  namespace: revoagent
+  labels:
+    app: revoagent-platform
+    component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: fast-ssd
+  
+---
+# Application Logs PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: revoagent-logs-pvc
+  namespace: revoagent
+  labels:
+    app: revoagent-platform
+    component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: standard
+  
+---
+# PostgreSQL Data PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data-pvc
+  namespace: revoagent
+  labels:
+    app: revoagent-platform
+    component: database
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: fast-ssd
+  
+---
+# Redis Data PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-data-pvc
+  namespace: revoagent
+  labels:
+    app: revoagent-platform
+    component: cache
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: fast-ssd
+  
+---
+# Shared Storage for Multi-Pod Access (if needed)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: revoagent-shared-pvc
+  namespace: revoagent
+  labels:
+    app: revoagent-platform
+    component: shared-storage
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: nfs-storage
+  
+---
+# Storage Classes (examples - adjust for your cluster)
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: fast-ssd
+  labels:
+    app: revoagent-platform
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp3
+  iops: "3000"
+  throughput: "125"
+  encrypted: "true"
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Retain
+
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: standard
+  labels:
+    app: revoagent-platform
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp2
+  encrypted: "true"
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Delete
+
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-storage
+  labels:
+    app: revoagent-platform
+provisioner: example.com/nfs
+parameters:
+  server: nfs-server.example.com
+  path: /exported/path
+allowVolumeExpansion: true
+volumeBindingMode: Immediate
+reclaimPolicy: Retain

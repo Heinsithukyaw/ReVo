@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>reVoAgent LLM Test</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background: #f5f5f5; 
+        }
+        .container { max-width: 800px; margin: 0 auto; }
+        .card { 
+            background: white; 
+            border-radius: 8px; 
+            padding: 20px; 
+            margin-bottom: 20px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+        }
+        .header { 
+            display: flex; 
+            align-items: center; 
+            margin-bottom: 20px; 
+        }
+        .status { 
+            padding: 4px 12px; 
+            border-radius: 20px; 
+            font-size: 12px; 
+            font-weight: 500; 
+            margin-left: 10px; 
+        }
+        .status.online { background: #dcfce7; color: #166534; }
+        .status.offline { background: #fef2f2; color: #dc2626; }
+        .button { 
+            background: #2563eb; 
+            color: white; 
+            border: none; 
+            padding: 8px 16px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 14px; 
+        }
+        .button:hover { background: #1d4ed8; }
+        .button:disabled { background: #9ca3af; cursor: not-allowed; }
+        .input { 
+            width: 100%; 
+            padding: 8px 12px; 
+            border: 1px solid #d1d5db; 
+            border-radius: 6px; 
+            font-size: 14px; 
+            margin-bottom: 10px; 
+        }
+        .response { 
+            background: #f9fafb; 
+            border: 1px solid #e5e7eb; 
+            border-radius: 6px; 
+            padding: 12px; 
+            margin-top: 10px; 
+            white-space: pre-wrap; 
+            font-family: monospace; 
+        }
+        .provider { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 12px; 
+            border: 1px solid #e5e7eb; 
+            border-radius: 6px; 
+            margin-bottom: 8px; 
+        }
+        .badge { 
+            padding: 2px 8px; 
+            border-radius: 12px; 
+            font-size: 11px; 
+            font-weight: 500; 
+        }
+        .badge.available { background: #dcfce7; color: #166534; }
+        .badge.unavailable { background: #f3f4f6; color: #6b7280; }
+        .badge.current { background: #dbeafe; color: #1e40af; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 reVoAgent LLM Integration Test</h1>
+            <span id="status" class="status offline">Backend Offline</span>
+        </div>
+
+        <div class="card">
+            <h3>🔧 Backend Status</h3>
+            <button class="button" onclick="checkHealth()">Check Health</button>
+            <div id="health-result"></div>
+        </div>
+
+        <div class="card">
+            <h3>🎯 Available Providers</h3>
+            <button class="button" onclick="loadProviders()">Load Providers</button>
+            <div id="providers-list"></div>
+        </div>
+
+        <div class="card">
+            <h3>💬 Chat Test</h3>
+            <input type="text" id="message" class="input" placeholder="Enter test message..." value="Hello! Can you help me with coding?">
+            <button class="button" onclick="sendMessage()" id="send-btn">Send Message</button>
+            <div id="chat-response"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://work-2-cikrwnvkyhdgeqtr.prod-runtime.all-hands.dev';
+        
+        async function apiCall(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    headers: { 'Content-Type': 'application/json' },
+                    ...options
+                });
+                return await response.json();
+            } catch (error) {
+                console.error('API Error:', error);
+                throw error;
+            }
+        }
+
+        async function checkHealth() {
+            try {
+                const health = await apiCall('/health');
+                const statusEl = document.getElementById('status');
+                const resultEl = document.getElementById('health-result');
+                
+                if (health.status === 'healthy') {
+                    statusEl.textContent = 'Backend Online';
+                    statusEl.className = 'status online';
+                    resultEl.innerHTML = `<div class="response">✅ Backend is healthy!<br>Service: ${health.service}<br>Version: ${health.version}</div>`;
+                } else {
+                    statusEl.textContent = 'Backend Issues';
+                    statusEl.className = 'status offline';
+                    resultEl.innerHTML = `<div class="response">⚠️ Backend has issues: ${JSON.stringify(health)}</div>`;
+                }
+            } catch (error) {
+                const statusEl = document.getElementById('status');
+                const resultEl = document.getElementById('health-result');
+                statusEl.textContent = 'Backend Offline';
+                statusEl.className = 'status offline';
+                resultEl.innerHTML = `<div class="response">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function loadProviders() {
+            try {
+                const data = await apiCall('/api/providers');
+                const listEl = document.getElementById('providers-list');
+                
+                let html = '';
+                data.providers.forEach(provider => {
+                    html += `
+                        <div class="provider">
+                            <div>
+                                <strong>${provider.name}</strong>
+                                <br><small>$${provider.cost_per_request.toFixed(4)}/request</small>
+                            </div>
+                            <div>
+                                <span class="badge ${provider.available ? 'available' : 'unavailable'}">
+                                    ${provider.available ? 'Available' : 'Unavailable'}
+                                </span>
+                                ${provider.is_current ? '<span class="badge current">Current</span>' : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                listEl.innerHTML = html;
+            } catch (error) {
+                document.getElementById('providers-list').innerHTML = `<div class="response">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function sendMessage() {
+            const messageEl = document.getElementById('message');
+            const responseEl = document.getElementById('chat-response');
+            const sendBtn = document.getElementById('send-btn');
+            
+            if (!messageEl.value.trim()) return;
+            
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Sending...';
+            
+            try {
+                const result = await apiCall('/api/chat', {
+                    method: 'POST',
+                    body: JSON.stringify({ content: messageEl.value })
+                });
+                
+                responseEl.innerHTML = `
+                    <div class="response">
+                        <strong>Response:</strong><br>
+                        ${result.response}<br><br>
+                        <strong>Details:</strong><br>
+                        Provider: ${result.provider}<br>
+                        Cost: $${result.cost.toFixed(4)}<br>
+                        Processing Time: ${result.processing_time.toFixed(2)}s<br>
+                        Hardware Optimized: ${result.hardware_optimized ? 'Yes' : 'No'}
+                    </div>
+                `;
+            } catch (error) {
+                responseEl.innerHTML = `<div class="response">❌ Error: ${error.message}</div>`;
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Send Message';
+            }
+        }
+
+        // Auto-check health on load
+        window.onload = () => {
+            checkHealth();
+            loadProviders();
+        };
+    </script>
+</body>
+</html>

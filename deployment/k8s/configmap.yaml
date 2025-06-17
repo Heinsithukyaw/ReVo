@@ -1,0 +1,112 @@
+# 🔧 reVoAgent Configuration Management
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: revoagent-config
+  namespace: revoagent
+  labels:
+    app: revoagent-platform
+    component: config
+data:
+  # Application Configuration
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "INFO"
+  
+  # Database Configuration
+  DATABASE_HOST: "postgres-service"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "revoagent"
+  DATABASE_USER: "revoagent"
+  
+  # Redis Configuration
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  
+  # API Configuration
+  API_HOST: "0.0.0.0"
+  API_PORT: "8000"
+  API_WORKERS: "4"
+  
+  # WebSocket Configuration
+  WS_ENABLED: "true"
+  WS_MAX_CONNECTIONS: "1000"
+  
+  # AI Configuration
+  AI_PROVIDER: "auto"
+  AI_FALLBACK_ENABLED: "true"
+  AI_TIMEOUT: "30"
+  
+  # Security Configuration
+  CORS_ORIGINS: "*"
+  CORS_CREDENTIALS: "true"
+  
+  # Monitoring Configuration
+  METRICS_ENABLED: "true"
+  HEALTH_CHECK_ENABLED: "true"
+  
+---
+# Nginx Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: revoagent
+  labels:
+    app: revoagent-platform
+    component: nginx
+data:
+  nginx.conf: |
+    events {
+        worker_connections 1024;
+    }
+    
+    http {
+        upstream backend {
+            server revoagent-backend-service:8000;
+        }
+        
+        server {
+            listen 80;
+            server_name _;
+            
+            # Security headers
+            add_header X-Frame-Options DENY;
+            add_header X-Content-Type-Options nosniff;
+            add_header X-XSS-Protection "1; mode=block";
+            
+            # API routes
+            location /api/ {
+                proxy_pass http://backend;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+            
+            # WebSocket routes
+            location /ws/ {
+                proxy_pass http://backend;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection "upgrade";
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+            
+            # Static files
+            location / {
+                root /usr/share/nginx/html;
+                try_files $uri $uri/ /index.html;
+            }
+            
+            # Health check
+            location /health {
+                access_log off;
+                return 200 "healthy\n";
+                add_header Content-Type text/plain;
+            }
+        }
+    }

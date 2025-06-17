@@ -1,0 +1,69 @@
+# reVoAgent Enterprise Port Configuration
+# Designed to avoid common conflicts and provide scalable architecture
+
+services:
+  frontend:
+    port: 3000
+    description: "React frontend application"
+    health_endpoint: "/"
+    
+  backend:
+    port: 8080
+    description: "FastAPI backend service"
+    health_endpoint: "/health"
+    
+  memory_service:
+    port: 8082
+    description: "Memory and knowledge service"
+    health_endpoint: "/api/memory/health"
+    
+  engine_coordinator:
+    port: 8084
+    description: "Three-engine coordinator"
+    health_endpoint: "/engines/status"
+    
+  postgres:
+    port: 5433
+    description: "PostgreSQL database (non-default port)"
+    
+  redis:
+    port: 6380
+    description: "Redis cache (non-default port)"
+    
+  prometheus:
+    port: 9091
+    description: "Prometheus monitoring (non-default port)"
+    
+  grafana:
+    port: 3002
+    description: "Grafana dashboards"
+
+environments:
+  development:
+    port_offset: 0  # Use standard ports for dev
+    
+  staging:
+    port_offset: 100  # Add 100 to all ports for staging
+    
+  production:
+    use_load_balancer: true
+    nginx_port: 80
+    nginx_ssl_port: 443
+
+# Port conflict resolution
+reserved_ports:
+  - 3000  # reVoAgent Frontend
+  - 8080  # reVoAgent Backend
+  - 8082  # reVoAgent Memory
+  - 8084  # reVoAgent Engines
+  - 5433  # reVoAgent PostgreSQL
+  - 6380  # reVoAgent Redis
+  - 9091  # reVoAgent Prometheus
+  - 3002  # reVoAgent Grafana
+
+# Legacy port mappings (for migration)
+legacy_mappings:
+  frontend_old: 12000
+  backend_old: 12001
+  frontend_new: 3000
+  backend_new: 8080

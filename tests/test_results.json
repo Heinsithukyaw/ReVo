@@ -1,0 +1,395 @@
+{
+  "Model Management": {
+    "result": {
+      "status": {
+        "models": {
+          "deepseek-r1-0528": {
+            "id": "deepseek-r1-0528",
+            "name": "DeepSeek R1 0528",
+            "type": "deepseek-r1",
+            "size": "70B",
+            "status": "loaded",
+            "memory_usage": 0.0,
+            "gpu_memory": 0.0,
+            "performance_score": 94.0,
+            "last_used": null,
+            "error_message": null
+          },
+          "llama-3.2-8b": {
+            "id": "llama-3.2-8b",
+            "name": "Llama 3.2 8B",
+            "type": "llama",
+            "size": "8B",
+            "status": "unloaded",
+            "memory_usage": 0.0,
+            "gpu_memory": 0.0,
+            "performance_score": 78.0,
+            "last_used": null,
+            "error_message": null
+          }
+        },
+        "system_stats": {
+          "cpu_percent": 2.5,
+          "memory_percent": 21.0,
+          "memory_used_gb": 2.908527374267578,
+          "memory_total_gb": 15.611473083496094,
+          "loaded_models": 1,
+          "active_model": "deepseek-r1-0528"
+        },
+        "active_model": "deepseek-r1-0528",
+        "timestamp": "2025-06-07T21:02:16.157086"
+      },
+      "load_result": {
+        "model_name": "deepseek-r1-0528",
+        "status": "loaded",
+        "message": "Model deepseek-r1-0528 loaded successfully",
+        "timestamp": "2025-06-07T21:02:16.160693"
+      }
+    },
+    "time_taken": 1.0059919357299805,
+    "status": "success"
+  },
+  "Code Generation": {
+    "result": [
+      {
+        "test_case": "FastAPI Todo App",
+        "result": {
+          "task_id": "97a1a714-faf6-4182-9783-6e7e60305d94",
+          "status": "error",
+          "error": "Model not loaded. Call load() first.",
+          "generated_code": "# Create a complete todo application with user authentication, task management, and real-time updates\n# Generated with FastAPI and postgresql\n\nfrom fastapi import FastAPI, HTTPException, Depends\nfrom fastapi.security import HTTPBearer, HTTPAuthorizationCredentials\nfrom sqlalchemy import create_engine, Column, Integer, String, DateTime\nfrom sqlalchemy.ext.declarative import declarative_base\nfrom sqlalchemy.orm import sessionmaker, Session\nfrom pydantic import BaseModel\nfrom datetime import datetime\nimport uvicorn\n\n# Database setup\nDATABASE_URL = \"postgresql://user:password@localhost/postgresql\"\nengine = create_engine(DATABASE_URL)\nSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)\nBase = declarative_base()\n\n# FastAPI app\napp = FastAPI(title=\"Create a complete todo application with user authentication, task management, and real-time updates\", version=\"1.0.0\")\nsecurity = HTTPBearer()\n\n# Models\nclass Item(Base):\n    __tablename__ = \"items\"\n    \n    id = Column(Integer, primary_key=True, index=True)\n    name = Column(String, index=True)\n    description = Column(String)\n    created_at = Column(DateTime, default=datetime.utcnow)\n\n# Pydantic schemas\nclass ItemCreate(BaseModel):\n    name: str\n    description: str\n\nclass ItemResponse(BaseModel):\n    id: int\n    name: str\n    description: str\n    created_at: datetime\n    \n    class Config:\n        from_attributes = True\n\n# Dependency\ndef get_db():\n    db = SessionLocal()\n    try:\n        yield db\n    finally:\n        db.close()\n\n# Routes\n@app.get(\"/\")\nasync def root():\n    return {\"message\": \"Welcome to Create a complete todo application with user authentication, task management, and real-time updates API\"}\n\n@app.post(\"/items/\", response_model=ItemResponse)\nasync def create_item(item: ItemCreate, db: Session = Depends(get_db)):\n    db_item = Item(**item.dict())\n    db.add(db_item)\n    db.commit()\n    db.refresh(db_item)\n    return db_item\n\n@app.get(\"/items/\", response_model=list[ItemResponse])\nasync def read_items(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):\n    items = db.query(Item).offset(skip).limit(limit).all()\n    return items\n\n@app.get(\"/items/{item_id}\", response_model=ItemResponse)\nasync def read_item(item_id: int, db: Session = Depends(get_db)):\n    item = db.query(Item).filter(Item.id == item_id).first()\n    if item is None:\n        raise HTTPException(status_code=404, detail=\"Item not found\")\n    return item\n\nif __name__ == \"__main__\":\n    uvicorn.run(app, host=\"0.0.0.0\", port=8000)\n",
+          "model_used": "Mock Generator (Error Fallback)",
+          "created_at": "2025-06-07T21:02:16.162611"
+        },
+        "time_taken": 0.0016999244689941406
+      },
+      {
+        "test_case": "React Dashboard",
+        "result": {
+          "task_id": "ef269cd6-bcab-45e3-bdba-e8839d3e6320",
+          "status": "error",
+          "error": "Model not loaded. Call load() first.",
+          "generated_code": "// Build a modern analytics dashboard with charts, real-time data, and responsive design\n// Generated with react\n\nconsole.log(\"Generated typescript application with react\");\n\n// TODO: Implement Build a modern analytics dashboard with charts, real-time data, and responsive design\n// Features: auth, tests, docs\n// Database: mongodb\n\nexport default function App() {\n    return (\n        <div>\n            <h1>Build a modern analytics dashboard with charts, real-time data, and responsive design</h1>\n            <p>Framework: react</p>\n            <p>Database: mongodb</p>\n        </div>\n    );\n}\n",
+          "model_used": "Mock Generator (Error Fallback)",
+          "created_at": "2025-06-07T21:02:17.165396"
+        },
+        "time_taken": 0.002593994140625
+      },
+      {
+        "test_case": "Microservice API",
+        "result": {
+          "task_id": "db82ff90-5bfa-49b8-af18-8aaada07082e",
+          "status": "error",
+          "error": "Model not loaded. Call load() first.",
+          "generated_code": "# Create a microservice for user management with JWT authentication and rate limiting\n# Generated with FastAPI and postgresql\n\nfrom fastapi import FastAPI, HTTPException, Depends\nfrom fastapi.security import HTTPBearer, HTTPAuthorizationCredentials\nfrom sqlalchemy import create_engine, Column, Integer, String, DateTime\nfrom sqlalchemy.ext.declarative import declarative_base\nfrom sqlalchemy.orm import sessionmaker, Session\nfrom pydantic import BaseModel\nfrom datetime import datetime\nimport uvicorn\n\n# Database setup\nDATABASE_URL = \"postgresql://user:password@localhost/postgresql\"\nengine = create_engine(DATABASE_URL)\nSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)\nBase = declarative_base()\n\n# FastAPI app\napp = FastAPI(title=\"Create a microservice for user management with JWT authentication and rate limiting\", version=\"1.0.0\")\nsecurity = HTTPBearer()\n\n# Models\nclass Item(Base):\n    __tablename__ = \"items\"\n    \n    id = Column(Integer, primary_key=True, index=True)\n    name = Column(String, index=True)\n    description = Column(String)\n    created_at = Column(DateTime, default=datetime.utcnow)\n\n# Pydantic schemas\nclass ItemCreate(BaseModel):\n    name: str\n    description: str\n\nclass ItemResponse(BaseModel):\n    id: int\n    name: str\n    description: str\n    created_at: datetime\n    \n    class Config:\n        from_attributes = True\n\n# Dependency\ndef get_db():\n    db = SessionLocal()\n    try:\n        yield db\n    finally:\n        db.close()\n\n# Routes\n@app.get(\"/\")\nasync def root():\n    return {\"message\": \"Welcome to Create a microservice for user management with JWT authentication and rate limiting API\"}\n\n@app.post(\"/items/\", response_model=ItemResponse)\nasync def create_item(item: ItemCreate, db: Session = Depends(get_db)):\n    db_item = Item(**item.dict())\n    db.add(db_item)\n    db.commit()\n    db.refresh(db_item)\n    return db_item\n\n@app.get(\"/items/\", response_model=list[ItemResponse])\nasync def read_items(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):\n    items = db.query(Item).offset(skip).limit(limit).all()\n    return items\n\n@app.get(\"/items/{item_id}\", response_model=ItemResponse)\nasync def read_item(item_id: int, db: Session = Depends(get_db)):\n    item = db.query(Item).filter(Item.id == item_id).first()\n    if item is None:\n        raise HTTPException(status_code=404, detail=\"Item not found\")\n    return item\n\nif __name__ == \"__main__\":\n    uvicorn.run(app, host=\"0.0.0.0\", port=8000)\n",
+          "model_used": "Mock Generator (Error Fallback)",
+          "created_at": "2025-06-07T21:02:18.168112"
+        },
+        "time_taken": 0.0024149417877197266
+      }
+    ],
+    "time_taken": 3.0075035095214844,
+    "status": "success"
+  },
+  "Dashboard Functionality": {
+    "result": {
+      "Dashboard Stats": {
+        "active_agents": 5,
+        "running_workflows": 1,
+        "tasks_completed": 847,
+        "models_loaded": 3,
+        "success_rate": 98.5,
+        "api_cost": 0,
+        "uptime": "99.9%",
+        "response_time": 234,
+        "system_metrics": {
+          "cpu_usage": 6.3,
+          "memory_usage": 21.0,
+          "disk_usage": 7.6,
+          "gpu_memory": 56,
+          "network_io": 23,
+          "disk_io": 34
+        },
+        "recent_activity": [
+          {
+            "id": "act-1",
+            "type": "code_generation",
+            "description": "Generated FastAPI endpoints",
+            "timestamp": "2025-06-07T20:57:20.171030",
+            "agent": "Enhanced Code Generator",
+            "status": "completed",
+            "quality_score": 94
+          },
+          {
+            "id": "act-2",
+            "type": "testing",
+            "description": "Executed unit tests",
+            "timestamp": "2025-06-07T20:50:20.171039",
+            "agent": "Testing Agent",
+            "status": "completed",
+            "quality_score": 89
+          },
+          {
+            "id": "act-3",
+            "type": "deployment",
+            "description": "Deployed to staging",
+            "timestamp": "2025-06-07T20:44:20.171042",
+            "agent": "Deploy Agent",
+            "status": "completed",
+            "quality_score": 96
+          }
+        ]
+      },
+      "Analytics Data": {
+        "performance_metrics": {
+          "total_projects": 2,
+          "active_projects": 1,
+          "completed_projects": 1,
+          "success_rate": 94.7,
+          "avg_completion_time": "4.2 days",
+          "code_quality_score": 87.3,
+          "test_coverage": 89.2,
+          "deployment_success_rate": 96.8
+        },
+        "agent_performance": {
+          "code_generator": {
+            "tasks": 234,
+            "success_rate": 96.2,
+            "avg_time": "3.4min"
+          },
+          "debug_agent": {
+            "tasks": 156,
+            "success_rate": 94.8,
+            "avg_time": "2.1min"
+          },
+          "testing_agent": {
+            "tasks": 189,
+            "success_rate": 91.7,
+            "avg_time": "5.2min"
+          },
+          "browser_agent": {
+            "tasks": 78,
+            "success_rate": 89.3,
+            "avg_time": "4.7min"
+          },
+          "deploy_agent": {
+            "tasks": 45,
+            "success_rate": 97.8,
+            "avg_time": "8.3min"
+          }
+        },
+        "resource_usage": {
+          "cpu_avg": 34.2,
+          "memory_avg": 67.8,
+          "gpu_avg": 45.6,
+          "network_io": 23.4,
+          "disk_io": 12.7
+        }
+      },
+      "Projects": {
+        "projects": [
+          {
+            "id": "proj-1",
+            "name": "E-commerce Platform",
+            "description": "Full-stack e-commerce with microservices",
+            "type": "web_app",
+            "language": "python",
+            "framework": "fastapi",
+            "status": "active",
+            "progress": 0.78,
+            "created_at": "2025-06-02T21:01:09.159006",
+            "updated_at": "2025-06-07T19:01:09.159012",
+            "agents_assigned": [
+              "code-gen-1",
+              "test-agent-1",
+              "deploy-agent-1"
+            ],
+            "files_generated": 47,
+            "tests_passed": 156,
+            "deployment_status": "staging"
+          },
+          {
+            "id": "proj-2",
+            "name": "AI Analytics Dashboard",
+            "description": "Real-time analytics with ML insights",
+            "type": "dashboard",
+            "language": "typescript",
+            "framework": "react",
+            "status": "completed",
+            "progress": 1.0,
+            "created_at": "2025-05-26T21:01:09.159015",
+            "updated_at": "2025-06-06T21:01:09.159017",
+            "agents_assigned": [
+              "code-gen-1",
+              "browser-agent-1"
+            ],
+            "files_generated": 23,
+            "tests_passed": 89,
+            "deployment_status": "production"
+          }
+        ]
+      },
+      "Workflows": {
+        "workflows": [
+          {
+            "id": "wf-1",
+            "name": "Microservices Development",
+            "description": "8 agents parallel execution for microservices",
+            "status": "running",
+            "progress": 0.67,
+            "agents": [
+              "code-gen-1",
+              "debug-agent-1",
+              "test-agent-1",
+              "deploy-agent-1"
+            ],
+            "project_id": "proj-1",
+            "started_at": "2025-06-07T20:36:09.159019",
+            "estimated_completion": "2025-06-07T21:16:09.159021",
+            "steps_completed": 12,
+            "total_steps": 18,
+            "current_step": "API Integration Testing"
+          },
+          {
+            "id": "wf-2",
+            "name": "Security Audit & Deployment",
+            "description": "Comprehensive security scan and deployment",
+            "status": "pending",
+            "progress": 0.0,
+            "agents": [
+              "debug-agent-1",
+              "deploy-agent-1"
+            ],
+            "project_id": "proj-2",
+            "started_at": null,
+            "estimated_completion": null,
+            "steps_completed": 0,
+            "total_steps": 8,
+            "current_step": "Waiting to start"
+          }
+        ]
+      },
+      "Monitoring Data": {
+        "system_health": {
+          "status": "healthy",
+          "uptime": "99.9%",
+          "last_restart": "2025-05-31T21:02:20.178077",
+          "alerts": []
+        },
+        "performance": {
+          "response_time": 234,
+          "throughput": 1247,
+          "error_rate": 0.1,
+          "success_rate": 99.9
+        },
+        "integrations": {
+          "openhands": {
+            "status": "healthy",
+            "response_time": 156
+          },
+          "vllm": {
+            "status": "healthy",
+            "response_time": 89
+          },
+          "docker": {
+            "status": "healthy",
+            "response_time": 67
+          },
+          "git": {
+            "status": "healthy",
+            "response_time": 123
+          }
+        },
+        "logs": [
+          {
+            "timestamp": "2025-06-07T21:00:20.178083",
+            "level": "INFO",
+            "message": "Code generation completed successfully",
+            "component": "EnhancedCodeGenerator"
+          },
+          {
+            "timestamp": "2025-06-07T20:57:20.178086",
+            "level": "INFO",
+            "message": "Workflow started: Microservices Development",
+            "component": "WorkflowEngine"
+          }
+        ]
+      }
+    },
+    "time_taken": 1.009547233581543,
+    "status": "success"
+  },
+  "Agent Functionality": {
+    "result": {
+      "testing": {
+        "task_id": "3480c2ac-aab4-4872-ae38-44f2d88c487d",
+        "status": "completed",
+        "tests_run": 47,
+        "tests_passed": 45,
+        "tests_failed": 2,
+        "coverage": 89.3,
+        "duration": "2.4s",
+        "results": [
+          {
+            "test": "test_user_auth",
+            "status": "passed",
+            "duration": "0.12s"
+          },
+          {
+            "test": "test_api_endpoints",
+            "status": "passed",
+            "duration": "0.34s"
+          },
+          {
+            "test": "test_database_connection",
+            "status": "failed",
+            "duration": "0.08s",
+            "error": "Connection timeout"
+          },
+          {
+            "test": "test_payment_processing",
+            "status": "passed",
+            "duration": "0.56s"
+          }
+        ]
+      },
+      "browser": {
+        "task_id": "96cd7b47-8445-40c1-b24e-149e9962bbd8",
+        "status": "completed",
+        "pages_visited": 12,
+        "data_extracted": 156,
+        "screenshots_taken": 8,
+        "duration": "45.2s",
+        "success_rate": 94.7,
+        "results": {
+          "forms_filled": 3,
+          "buttons_clicked": 15,
+          "data_points": 156,
+          "errors": 1
+        }
+      },
+      "security": {
+        "id": "scan-2",
+        "target": "generated-todo-app",
+        "type": "comprehensive",
+        "status": "completed",
+        "started_at": "2025-06-07T21:02:20.184230",
+        "completed_at": "2025-06-07T21:02:23.184944",
+        "vulnerabilities": {
+          "critical": 0,
+          "high": 1,
+          "medium": 3,
+          "low": 7,
+          "info": 5
+        },
+        "score": 89.2,
+        "recommendations": [
+          "Update dependencies",
+          "Add rate limiting"
+        ]
+      }
+    },
+    "time_taken": 3.0071418285369873,
+    "status": "success"
+  }
+}

@@ -1,0 +1,3 @@
+[submodule "external/awesome-mcp-servers"]
+	path = external/awesome-mcp-servers
+	url = https://github.com/punkpeye/awesome-mcp-servers.git

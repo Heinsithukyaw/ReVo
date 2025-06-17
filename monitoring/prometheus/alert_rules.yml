@@ -1,0 +1,144 @@
+groups:
+  - name: revoagent_alerts
+    rules:
+      # API Performance Alerts
+      - alert: HighAPIResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="revoagent-api"}[5m])) > 2
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API response time detected"
+          description: "95th percentile response time is {{ $value }}s, exceeding 2s threshold"
+
+      - alert: HighAPIErrorRate
+        expr: rate(http_requests_total{job="revoagent-api",status=~"5.."}[5m]) / rate(http_requests_total{job="revoagent-api"}[5m]) > 0.05
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High API error rate detected"
+          description: "API error rate is {{ $value | humanizePercentage }}, exceeding 5% threshold"
+
+      # AI Model Performance Alerts
+      - alert: AIModelFailureRate
+        expr: rate(ai_model_requests_total{status="failed"}[5m]) / rate(ai_model_requests_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High AI model failure rate"
+          description: "AI model failure rate is {{ $value | humanizePercentage }}, exceeding 10% threshold"
+
+      - alert: LocalModelUnavailable
+        expr: ai_model_available{model_type="local"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Local AI model unavailable"
+          description: "Local AI model {{ $labels.model_name }} is unavailable, falling back to cloud models"
+
+      # Cost Optimization Alerts
+      - alert: HighCloudModelUsage
+        expr: (rate(ai_model_requests_total{model_type="cloud"}[5m]) / rate(ai_model_requests_total[5m])) > 0.2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High cloud model usage detected"
+          description: "Cloud model usage is {{ $value | humanizePercentage }}, exceeding 20% threshold"
+
+      - alert: CostThresholdExceeded
+        expr: increase(ai_cost_total[1h]) > 10
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Hourly cost threshold exceeded"
+          description: "AI costs in the last hour: ${{ $value }}, exceeding $10 threshold"
+
+      # System Resource Alerts
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value }}% on {{ $labels.instance }}"
+
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value }}% on {{ $labels.instance }}"
+
+      - alert: DiskSpaceLow
+        expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Low disk space detected"
+          description: "Disk usage is {{ $value }}% on {{ $labels.instance }}"
+
+      # WebSocket Connection Alerts
+      - alert: HighWebSocketConnections
+        expr: websocket_connections_active > 1000
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of WebSocket connections"
+          description: "Active WebSocket connections: {{ $value }}, approaching limit"
+
+      - alert: WebSocketConnectionFailures
+        expr: rate(websocket_connection_failures_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High WebSocket connection failure rate"
+          description: "WebSocket connection failures: {{ $value }}/min"
+
+      # Security Alerts
+      - alert: HighFailedLoginAttempts
+        expr: rate(auth_login_attempts_total{status="failed"}[5m]) > 5
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High failed login attempt rate"
+          description: "Failed login attempts: {{ $value }}/min, possible brute force attack"
+
+      - alert: RateLimitExceeded
+        expr: rate(rate_limit_exceeded_total[5m]) > 50
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High rate limit violations"
+          description: "Rate limit violations: {{ $value }}/min"
+
+      # Agent Performance Alerts
+      - alert: AgentResponseTime
+        expr: histogram_quantile(0.95, rate(agent_request_duration_seconds_bucket[5m])) > 5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High agent response time"
+          description: "95th percentile agent response time: {{ $value }}s, exceeding 5s threshold"
+
+      - alert: MultiAgentCollaborationFailure
+        expr: rate(multi_agent_collaboration_failures_total[5m]) > 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Multi-agent collaboration failures detected"
+          description: "Multi-agent collaboration failures: {{ $value }}/min"

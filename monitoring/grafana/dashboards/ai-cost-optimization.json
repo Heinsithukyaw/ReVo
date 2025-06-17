@@ -1,0 +1,222 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "reVoAgent - AI Cost Optimization",
+    "tags": ["revoagent", "ai", "cost"],
+    "style": "dark",
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Total Cost Savings",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "ai_cost_savings_total",
+            "legendFormat": "Total Savings"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 100},
+                {"color": "green", "value": 500}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Monthly Projected Savings",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "ai_cost_savings_total * 30",
+            "legendFormat": "Monthly Projection"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 1000},
+                {"color": "green", "value": 5000}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Local Model Usage Rate",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "(rate(ai_model_requests_total{model_type=\"local\"}[5m]) / rate(ai_model_requests_total[5m])) * 100",
+            "legendFormat": "Local Usage %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 80},
+                {"color": "green", "value": 95}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0}
+      },
+      {
+        "id": 4,
+        "title": "Cost per Request",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(ai_cost_total[5m]) / rate(ai_model_requests_total[5m])",
+            "legendFormat": "Avg Cost/Request"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "decimals": 4,
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 0.01},
+                {"color": "red", "value": 0.03}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0}
+      },
+      {
+        "id": 5,
+        "title": "Model Usage Distribution",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum by (model_name) (rate(ai_model_requests_total[5m]))",
+            "legendFormat": "{{model_name}}"
+          }
+        ],
+        "gridPos": {"h": 9, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 6,
+        "title": "Cost Breakdown by Model",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum by (model_name) (rate(ai_cost_total[5m]))",
+            "legendFormat": "{{model_name}}"
+          }
+        ],
+        "gridPos": {"h": 9, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 7,
+        "title": "Cost Trends Over Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(ai_cost_total[5m])",
+            "legendFormat": "Current Cost/sec"
+          },
+          {
+            "expr": "rate(ai_cost_total{model_type=\"cloud\"}[5m])",
+            "legendFormat": "Cloud Cost/sec"
+          },
+          {
+            "expr": "rate(ai_cost_total{model_type=\"local\"}[5m])",
+            "legendFormat": "Local Cost/sec"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Cost/sec (USD)",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 9, "w": 12, "x": 0, "y": 17}
+      },
+      {
+        "id": 8,
+        "title": "Savings Rate Over Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "increase(ai_cost_savings_total[1h])",
+            "legendFormat": "Hourly Savings"
+          },
+          {
+            "expr": "increase(ai_cost_savings_total[24h])",
+            "legendFormat": "Daily Savings"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Savings (USD)",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 9, "w": 12, "x": 12, "y": 17}
+      },
+      {
+        "id": 9,
+        "title": "Model Performance vs Cost",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "sum by (model_name) (rate(ai_model_requests_total[5m]))",
+            "legendFormat": "Requests/sec",
+            "format": "table"
+          },
+          {
+            "expr": "sum by (model_name) (rate(ai_cost_total[5m]))",
+            "legendFormat": "Cost/sec",
+            "format": "table"
+          },
+          {
+            "expr": "sum by (model_name) (rate(ai_model_requests_total{status=\"success\"}[5m])) / sum by (model_name) (rate(ai_model_requests_total[5m]))",
+            "legendFormat": "Success Rate",
+            "format": "table"
+          }
+        ],
+        "gridPos": {"h": 9, "w": 24, "x": 0, "y": 26}
+      }
+    ],
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "refresh": "30s"
+  }
+}

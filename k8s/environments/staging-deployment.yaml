@@ -1,0 +1,401 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: revoagent-staging
+  labels:
+    environment: staging
+    app: revoagent
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: revoagent-staging
+  namespace: revoagent-staging
+  labels:
+    app: revoagent
+    environment: staging
+    version: staging
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: revoagent
+      environment: staging
+  template:
+    metadata:
+      labels:
+        app: revoagent
+        environment: staging
+        version: staging
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: revoagent-staging
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: revoagent
+        image: IMAGE_TAG  # Will be replaced by CI/CD
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 12000
+          name: http
+          protocol: TCP
+        - containerPort: 8080
+          name: websocket
+          protocol: TCP
+        - containerPort: 9090
+          name: metrics
+          protocol: TCP
+        env:
+        - name: ENVIRONMENT
+          value: "staging"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: revoagent-staging-secrets
+              key: db-host
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: revoagent-staging-secrets
+              key: db-user
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: revoagent-staging-secrets
+              key: db-password
+        - name: REDIS_HOST
+          valueFrom:
+            secretKeyRef:
+              name: revoagent-staging-secrets
+              key: redis-host
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: revoagent-staging-secrets
+              key: redis-password
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: revoagent-staging-secrets
+              key: jwt-secret
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: revoagent-staging-secrets
+              key: openai-api-key
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: revoagent-staging-secrets
+              key: anthropic-api-key
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: revoagent-staging-secrets
+              key: github-token
+        - name: SLACK_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: revoagent-staging-secrets
+              key: slack-bot-token
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 12000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 12000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        volumeMounts:
+        - name: config
+          mountPath: /app/config
+          readOnly: true
+        - name: models
+          mountPath: /app/models
+          readOnly: true
+        - name: logs
+          mountPath: /var/log/revoagent
+      volumes:
+      - name: config
+        configMap:
+          name: revoagent-staging-config
+      - name: models
+        persistentVolumeClaim:
+          claimName: revoagent-staging-models
+      - name: logs
+        emptyDir: {}
+      nodeSelector:
+        environment: staging
+      tolerations:
+      - key: "staging"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: revoagent-staging-service
+  namespace: revoagent-staging
+  labels:
+    app: revoagent
+    environment: staging
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 12000
+    protocol: TCP
+    name: http
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: websocket
+  - port: 9090
+    targetPort: 9090
+    protocol: TCP
+    name: metrics
+  selector:
+    app: revoagent
+    environment: staging
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: revoagent-staging
+  namespace: revoagent-staging
+  labels:
+    app: revoagent
+    environment: staging
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: revoagent-staging
+  name: revoagent-staging-role
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: revoagent-staging-rolebinding
+  namespace: revoagent-staging
+subjects:
+- kind: ServiceAccount
+  name: revoagent-staging
+  namespace: revoagent-staging
+roleRef:
+  kind: Role
+  name: revoagent-staging-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: revoagent-staging-config
+  namespace: revoagent-staging
+  labels:
+    app: revoagent
+    environment: staging
+data:
+  config.yaml: |
+    environment: staging
+    debug: false
+    log_level: INFO
+    
+    database:
+      pool_size: 10
+      max_overflow: 20
+      echo: false
+      ssl_mode: require
+    
+    redis:
+      db: 0
+      max_connections: 50
+      ssl: true
+    
+    agents:
+      max_concurrent_tasks: 10
+      task_timeout: 600
+      heartbeat_interval: 30
+      auto_restart: true
+    
+    websocket:
+      host: 0.0.0.0
+      port: 8080
+      max_connections: 500
+      heartbeat_interval: 30
+      compression: true
+    
+    security:
+      jwt_expiry: 3600
+      rate_limiting:
+        enabled: true
+        requests_per_minute: 100
+        burst_size: 20
+    
+    monitoring:
+      enabled: true
+      metrics_port: 9090
+      health_check_interval: 30
+      detailed_metrics: true
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: revoagent-staging-models
+  namespace: revoagent-staging
+  labels:
+    app: revoagent
+    environment: staging
+spec:
+  accessModes:
+    - ReadOnlyMany
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: fast-ssd
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: revoagent-staging-ingress
+  namespace: revoagent-staging
+  labels:
+    app: revoagent
+    environment: staging
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/websocket-services: "revoagent-staging-service"
+spec:
+  tls:
+  - hosts:
+    - staging.revoagent.com
+    secretName: revoagent-staging-tls
+  rules:
+  - host: staging.revoagent.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: revoagent-staging-service
+            port:
+              number: 80
+      - path: /ws
+        pathType: Prefix
+        backend:
+          service:
+            name: revoagent-staging-service
+            port:
+              number: 8080
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: revoagent-staging-hpa
+  namespace: revoagent-staging
+  labels:
+    app: revoagent
+    environment: staging
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: revoagent-staging
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: revoagent-staging-pdb
+  namespace: revoagent-staging
+  labels:
+    app: revoagent
+    environment: staging
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: revoagent
+      environment: staging

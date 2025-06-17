@@ -1,0 +1,94 @@
+{
+  "services": {
+    "backend": {
+      "name": "backend",
+      "command": "python simple_backend_server.py --host 0.0.0.0 --port {port}",
+      "port": 12001,
+      "working_dir": "/workspace/reVoAgent",
+      "env_vars": {
+        "PYTHONPATH": "/workspace/reVoAgent",
+        "NODE_ENV": "development"
+      },
+      "health_check_url": "http://localhost:{port}/health",
+      "startup_timeout": 30,
+      "shutdown_timeout": 10,
+      "auto_restart": true,
+      "max_restarts": 3,
+      "critical": true
+    },
+    "frontend": {
+      "name": "frontend",
+      "command": "npm run dev -- --host 0.0.0.0 --port {port}",
+      "port": 12000,
+      "working_dir": "/workspace/reVoAgent/frontend",
+      "health_check_url": "http://localhost:{port}",
+      "startup_timeout": 45,
+      "shutdown_timeout": 15,
+      "auto_restart": true,
+      "max_restarts": 3,
+      "dependencies": ["backend"],
+      "critical": true
+    },
+    "memory_api": {
+      "name": "memory_api",
+      "command": "python -m apps.memory.api --port {port}",
+      "port": 8001,
+      "working_dir": "/workspace/reVoAgent",
+      "env_vars": {
+        "PYTHONPATH": "/workspace/reVoAgent"
+      },
+      "health_check_url": "http://localhost:{port}/api/memory/health",
+      "startup_timeout": 20,
+      "shutdown_timeout": 10,
+      "auto_restart": false,
+      "max_restarts": 2,
+      "critical": false
+    },
+    "three_engine": {
+      "name": "three_engine",
+      "command": "python start_three_engine_system.py --port {port}",
+      "port": 8002,
+      "working_dir": "/workspace/reVoAgent",
+      "env_vars": {
+        "PYTHONPATH": "/workspace/reVoAgent"
+      },
+      "health_check_url": "http://localhost:{port}/engines/status",
+      "startup_timeout": 25,
+      "shutdown_timeout": 15,
+      "auto_restart": false,
+      "max_restarts": 2,
+      "critical": false
+    }
+  },
+  "monitoring": {
+    "enabled": true,
+    "interval": 30,
+    "auto_resolve_conflicts": true,
+    "notification_webhook": null
+  },
+  "conflict_resolution": {
+    "strategy": "intelligent",
+    "allow_port_migration": true,
+    "preserve_external_processes": true,
+    "max_alternative_ports": 10
+  },
+  "health_checks": {
+    "enabled": true,
+    "timeout": 10,
+    "retry_attempts": 3,
+    "retry_delay": 2
+  },
+  "logging": {
+    "level": "INFO",
+    "max_file_size": "10MB",
+    "backup_count": 5
+  },
+  "ports": {
+    "reserved_ranges": [
+      [12000, 12010],
+      [8000, 8010]
+    ],
+    "excluded_ports": [22, 80, 443, 3306, 5432],
+    "alternative_port_start": 14000
+  }
+}

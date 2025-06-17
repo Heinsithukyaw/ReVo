@@ -1,0 +1,113 @@
+# MCP Servers Configuration
+# Available MCP servers for reVoAgent platform
+
+servers:
+  # File System Operations
+  - name: filesystem
+    description: "Secure file system operations with tenant isolation"
+    category: file_systems
+    repository_url: "https://github.com/modelcontextprotocol/servers"
+    language: typescript
+    transport_types: [stdio]
+    installation_method: npm
+    command_template: "npx @modelcontextprotocol/server-filesystem"
+    args_template: ["{base_path}"]
+    env_vars: {}
+    requirements: [node, npm]
+    enterprise_ready: true
+    security_notes: "Restricted to tenant-specific directories"
+
+  # Database Operations
+  - name: sqlite
+    description: "SQLite database operations with access control"
+    category: databases
+    repository_url: "https://github.com/modelcontextprotocol/servers"
+    language: typescript
+    transport_types: [stdio]
+    installation_method: npm
+    command_template: "npx @modelcontextprotocol/server-sqlite"
+    args_template: ["{database_path}"]
+    env_vars: {}
+    requirements: [node, npm]
+    enterprise_ready: true
+    security_notes: "Tenant-isolated database access"
+
+  # Version Control
+  - name: github
+    description: "GitHub repository operations"
+    category: version_control
+    repository_url: "https://github.com/modelcontextprotocol/servers"
+    language: typescript
+    transport_types: [stdio]
+    installation_method: npm
+    command_template: "npx @modelcontextprotocol/server-github"
+    args_template: []
+    env_vars:
+      GITHUB_PERSONAL_ACCESS_TOKEN: required
+    requirements: [node, npm]
+    enterprise_ready: true
+    security_notes: "Requires GitHub PAT with appropriate scopes"
+
+  # Browser Automation
+  - name: puppeteer
+    description: "Browser automation and web scraping"
+    category: browser_automation
+    repository_url: "https://github.com/modelcontextprotocol/servers"
+    language: typescript
+    transport_types: [stdio]
+    installation_method: npm
+    command_template: "npx @modelcontextprotocol/server-puppeteer"
+    args_template: []
+    env_vars: {}
+    requirements: [node, npm, chromium]
+    enterprise_ready: true
+    security_notes: "Restricted to approved domains"
+
+  # Web Search
+  - name: brave-search
+    description: "Web search using Brave Search API"
+    category: data_platforms
+    repository_url: "https://github.com/modelcontextprotocol/servers"
+    language: typescript
+    transport_types: [stdio]
+    installation_method: npm
+    command_template: "npx @modelcontextprotocol/server-brave-search"
+    args_template: []
+    env_vars:
+      BRAVE_API_KEY: required
+    requirements: [node, npm]
+    enterprise_ready: false
+    security_notes: "Requires Brave Search API key"
+
+  # PostgreSQL Database
+  - name: postgres
+    description: "PostgreSQL database operations"
+    category: databases
+    repository_url: "https://github.com/modelcontextprotocol/servers"
+    language: typescript
+    transport_types: [stdio]
+    installation_method: npm
+    command_template: "npx @modelcontextprotocol/server-postgres"
+    args_template: []
+    env_vars:
+      POSTGRES_CONNECTION_STRING: required
+    requirements: [node, npm]
+    enterprise_ready: true
+    security_notes: "Requires secure connection string"
+
+# Enterprise Server Categories
+enterprise_categories:
+  - file_systems
+  - databases
+  - version_control
+  - browser_automation
+  - cloud_platforms
+  - security
+  - monitoring
+
+# Security Configuration
+security:
+  default_security_level: restricted
+  require_approval_for_categories: [security, cloud_platforms]
+  audit_all_operations: true
+  max_requests_per_minute: 100

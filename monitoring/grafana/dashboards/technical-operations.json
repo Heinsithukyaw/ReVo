@@ -1,0 +1,376 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "reVoAgent Technical Operations Dashboard",
+    "description": "Detailed technical metrics for operations and engineering teams",
+    "tags": ["revoagent", "technical", "operations", "engineering"],
+    "timezone": "browser",
+    "refresh": "15s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "🚀 System Health Overview",
+        "type": "stat",
+        "gridPos": {"h": 6, "w": 24, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "up{job=~\"revoagent.*\"}",
+            "legendFormat": "{{job}} - {{instance}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {"options": {"0": {"text": "DOWN", "color": "red"}}, "type": "value"},
+              {"options": {"1": {"text": "UP", "color": "green"}}, "type": "value"}
+            ],
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "green", "value": 1}
+              ]
+            }
+          }
+        },
+        "options": {
+          "colorMode": "background",
+          "graphMode": "none"
+        }
+      },
+      {
+        "id": 2,
+        "title": "📊 Request Rate & Latency",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6},
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{job=~\"revoagent.*\"}[5m])) by (job)",
+            "legendFormat": "{{job}} - Requests/sec",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=~\"revoagent.*\"}[5m])) by (job, le))",
+            "legendFormat": "{{job}} - P95 Latency",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth"
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byRegexp", "options": ".*Latency.*"},
+              "properties": [
+                {"id": "unit", "value": "s"},
+                {"id": "custom.axisPlacement", "value": "right"}
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": 3,
+        "title": "❌ Error Rates",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 6},
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{job=~\"revoagent.*\",status=~\"5..\"}[5m])) by (job) / sum(rate(http_requests_total{job=~\"revoagent.*\"}[5m])) by (job) * 100",
+            "legendFormat": "{{job}} - Error Rate (%)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 1},
+                {"color": "red", "value": 5}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "💾 Memory Usage",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 14},
+        "targets": [
+          {
+            "expr": "container_memory_usage_bytes{pod=~\".*revoagent.*\"} / container_spec_memory_limit_bytes{pod=~\".*revoagent.*\"} * 100",
+            "legendFormat": "{{pod}} - Memory %",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "max": 100,
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 70},
+                {"color": "red", "value": 90}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "🔥 CPU Usage",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 14},
+        "targets": [
+          {
+            "expr": "rate(container_cpu_usage_seconds_total{pod=~\".*revoagent.*\"}[5m]) / container_spec_cpu_quota{pod=~\".*revoagent.*\"} * container_spec_cpu_period{pod=~\".*revoagent.*\"} * 100",
+            "legendFormat": "{{pod}} - CPU %",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "max": 100,
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 70},
+                {"color": "red", "value": 90}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "🔄 Pod Scaling",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 14},
+        "targets": [
+          {
+            "expr": "kube_deployment_status_replicas{deployment=~\".*revoagent.*\"}",
+            "legendFormat": "{{deployment}} - Current Replicas",
+            "refId": "A"
+          },
+          {
+            "expr": "kube_deployment_spec_replicas{deployment=~\".*revoagent.*\"}",
+            "legendFormat": "{{deployment}} - Desired Replicas",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "stepAfter"
+            }
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "🧠 AI Model Performance",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 22},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(revoagent_ai_inference_duration_seconds_bucket[5m]))",
+            "legendFormat": "P95 Inference Time",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(revoagent_ai_requests_total[5m])",
+            "legendFormat": "AI Requests/sec",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(revoagent_ai_cache_hits_total[5m]) / rate(revoagent_ai_requests_total[5m]) * 100",
+            "legendFormat": "Cache Hit Rate %",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth"
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "P95 Inference Time"},
+              "properties": [{"id": "unit", "value": "s"}]
+            },
+            {
+              "matcher": {"id": "byName", "options": "Cache Hit Rate %"},
+              "properties": [{"id": "unit", "value": "percent"}]
+            }
+          ]
+        }
+      },
+      {
+        "id": 8,
+        "title": "🔗 Engine Coordination",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 22},
+        "targets": [
+          {
+            "expr": "rate(revoagent_engine_coordination_requests_total[5m])",
+            "legendFormat": "Coordination Requests/sec",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(revoagent_engine_coordination_duration_seconds_bucket[5m]))",
+            "legendFormat": "P95 Coordination Time",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(revoagent_engine_coordination_failures_total[5m])",
+            "legendFormat": "Coordination Failures/sec",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth"
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "P95 Coordination Time"},
+              "properties": [{"id": "unit", "value": "s"}]
+            }
+          ]
+        }
+      },
+      {
+        "id": 9,
+        "title": "🗄️ Database Performance",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 30},
+        "targets": [
+          {
+            "expr": "rate(postgresql_queries_total[5m])",
+            "legendFormat": "Queries/sec",
+            "refId": "A"
+          },
+          {
+            "expr": "postgresql_slow_queries",
+            "legendFormat": "Slow Queries",
+            "refId": "B"
+          },
+          {
+            "expr": "postgresql_connections_active",
+            "legendFormat": "Active Connections",
+            "refId": "C"
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "🚀 Redis Performance",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 30},
+        "targets": [
+          {
+            "expr": "rate(redis_commands_processed_total[5m])",
+            "legendFormat": "Commands/sec",
+            "refId": "A"
+          },
+          {
+            "expr": "redis_memory_used_bytes / redis_memory_max_bytes * 100",
+            "legendFormat": "Memory Usage %",
+            "refId": "B"
+          },
+          {
+            "expr": "redis_connected_clients",
+            "legendFormat": "Connected Clients",
+            "refId": "C"
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "🌐 Network I/O",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 30},
+        "targets": [
+          {
+            "expr": "rate(container_network_receive_bytes_total{pod=~\".*revoagent.*\"}[5m])",
+            "legendFormat": "{{pod}} - RX bytes/sec",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(container_network_transmit_bytes_total{pod=~\".*revoagent.*\"}[5m])",
+            "legendFormat": "{{pod}} - TX bytes/sec",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "binBps"
+          }
+        }
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "namespace",
+          "type": "query",
+          "query": "label_values(kube_pod_info, namespace)",
+          "current": {
+            "value": "revoagent",
+            "text": "revoagent"
+          }
+        },
+        {
+          "name": "pod",
+          "type": "query",
+          "query": "label_values(kube_pod_info{namespace=\"$namespace\"}, pod)",
+          "multi": true,
+          "includeAll": true
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "name": "Pod Restarts",
+          "datasource": "Prometheus",
+          "expr": "changes(kube_pod_container_status_restarts_total{namespace=\"revoagent\"}[5m]) > 0",
+          "titleFormat": "Pod Restart",
+          "textFormat": "{{pod}} restarted"
+        },
+        {
+          "name": "High Memory",
+          "datasource": "Prometheus",
+          "expr": "container_memory_usage_bytes{pod=~\".*revoagent.*\"} / container_spec_memory_limit_bytes{pod=~\".*revoagent.*\"} > 0.9",
+          "titleFormat": "High Memory Usage",
+          "textFormat": "{{pod}} memory usage > 90%"
+        }
+      ]
+    }
+  },
+  "overwrite": true
+}

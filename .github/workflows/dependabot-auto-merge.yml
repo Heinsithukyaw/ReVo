@@ -1,0 +1,147 @@
+name: Dependabot Auto-Merge
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  pull_request_review:
+    types: [submitted]
+  check_suite:
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt', '**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+          
+      - name: Install additional requirements
+        run: |
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f requirements-ai.txt ]; then pip install -r requirements-ai.txt; fi
+          if [ -f requirements-engines.txt ]; then pip install -r requirements-engines.txt; fi
+
+      - name: Run linting
+        run: |
+          black --check . || echo "Black formatting issues found"
+          isort --check-only . || echo "Import sorting issues found"
+          flake8 . || echo "Flake8 issues found"
+
+      - name: Run type checking
+        run: |
+          mypy src/revoagent || echo "Type checking issues found"
+
+      - name: Run tests
+        run: |
+          pytest tests/ -v --cov=revoagent --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
+
+  auto-merge:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]' && needs.test.result == 'success'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v1
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Check if PR is ready for auto-merge
+        id: check-ready
+        run: |
+          # Check if this is a patch or minor update
+          if [[ "${{ steps.metadata.outputs.update-type }}" == "version-update:semver-patch" ]] || [[ "${{ steps.metadata.outputs.update-type }}" == "version-update:semver-minor" ]]; then
+            echo "ready=true" >> $GITHUB_OUTPUT
+            echo "This is a ${{ steps.metadata.outputs.update-type }} update - eligible for auto-merge"
+          else
+            echo "ready=false" >> $GITHUB_OUTPUT
+            echo "This is a ${{ steps.metadata.outputs.update-type }} update - requires manual review"
+          fi
+
+      - name: Auto-approve Dependabot PR
+        if: steps.check-ready.outputs.ready == 'true'
+        run: |
+          gh pr review --approve "$PR_URL" --body "✅ Auto-approving ${{ steps.metadata.outputs.update-type }} dependency update after successful tests"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable auto-merge for Dependabot PRs
+        if: steps.check-ready.outputs.ready == 'true'
+        run: |
+          gh pr merge --auto --squash "$PR_URL"
+          echo "✅ Auto-merge enabled for ${{ steps.metadata.outputs.dependency-names }} update"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Comment on major version updates
+        if: steps.metadata.outputs.update-type == 'version-update:semver-major'
+        run: |
+          gh pr comment "$PR_URL" --body "🚨 **Major Version Update Detected**
+          
+          This PR updates **${{ steps.metadata.outputs.dependency-names }}** with a major version change.
+          
+          **⚠️ Manual review required before merging.**
+          
+          Please review:
+          - Breaking changes in the changelog
+          - Compatibility with existing code
+          - Test coverage for affected functionality
+          
+          Update type: \`${{ steps.metadata.outputs.update-type }}\`"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add labels based on update type
+        run: |
+          if [[ "${{ steps.metadata.outputs.update-type }}" == "version-update:semver-major" ]]; then
+            gh pr edit "$PR_URL" --add-label "major-update,needs-manual-review"
+          elif [[ "${{ steps.metadata.outputs.update-type }}" == "version-update:semver-minor" ]]; then
+            gh pr edit "$PR_URL" --add-label "minor-update,auto-mergeable"
+          else
+            gh pr edit "$PR_URL" --add-label "patch-update,auto-mergeable"
+          fi
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

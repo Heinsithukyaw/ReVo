@@ -1,0 +1,52 @@
+# Workflow Manager Agent Dockerfile
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -r revoagent && useradd -r -g revoagent -u 1000 revoagent
+
+# Copy requirements
+COPY requirements.txt requirements-ai.txt ./
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt -r requirements-ai.txt
+
+# Copy application code
+COPY src/ ./src/
+COPY packages/ ./packages/
+COPY config/ ./config/
+
+# Copy agent-specific files
+COPY deployment/agents/entrypoints/workflow-manager-entrypoint.py ./entrypoint.py
+
+# Create necessary directories
+RUN mkdir -p /app/logs /app/cache /app/workflows && \
+    chown -R revoagent:revoagent /app
+
+# Switch to non-root user
+USER revoagent
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Expose ports
+EXPOSE 8000 8001
+
+# Set environment variables
+ENV PYTHONPATH=/app/src:/app/packages
+ENV AGENT_TYPE=workflow_manager
+ENV LOG_LEVEL=INFO
+ENV METRICS_ENABLED=true
+
+# Start the agent
+CMD ["python", "entrypoint.py"]

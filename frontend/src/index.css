@@ -1,0 +1,167 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Consolas', monospace;
+  }
+  
+  body {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  /* Glassmorphism Base Classes */
+  .glass {
+    @apply bg-white/10 backdrop-blur-lg border border-white/20 shadow-glass;
+  }
+  
+  .glass-light {
+    @apply bg-white/5 backdrop-blur-md border border-white/10 shadow-glass;
+  }
+  
+  .glass-medium {
+    @apply bg-white/15 backdrop-blur-xl border border-white/25 shadow-glass-lg;
+  }
+  
+  .glass-heavy {
+    @apply bg-white/25 backdrop-blur-2xl border border-white/30 shadow-glass-xl;
+  }
+  
+  .glass-dark {
+    @apply bg-black/10 backdrop-blur-lg border border-black/20 shadow-glass;
+  }
+  
+  .glass-card {
+    @apply glass rounded-glass p-6 transition-all duration-300 hover:bg-white/15 hover:shadow-glass-lg;
+  }
+  
+  .glass-panel {
+    @apply glass-medium rounded-glass-lg p-8 transition-all duration-300;
+  }
+  
+  .glass-button {
+    @apply glass rounded-lg px-4 py-2 text-white font-medium transition-all duration-200 hover:bg-white/20 hover:shadow-glass-lg active:scale-95;
+  }
+  
+  .glass-input {
+    @apply glass rounded-lg px-3 py-2 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/30 focus:bg-white/15 transition-all duration-200;
+  }
+  
+  .glass-sidebar {
+    @apply glass-heavy rounded-r-glass-lg border-l-0 backdrop-blur-2xl;
+  }
+  
+  .glass-header {
+    @apply glass-medium backdrop-blur-xl border-b border-white/20;
+  }
+  
+  /* Status Indicators */
+  .status-indicator {
+    @apply w-2 h-2 rounded-full inline-block;
+  }
+  
+  .status-online {
+    @apply bg-green-400 animate-pulse-green shadow-lg shadow-green-400/50;
+  }
+  
+  .status-offline {
+    @apply bg-red-400 shadow-lg shadow-red-400/50;
+  }
+  
+  .status-warning {
+    @apply bg-yellow-400 shadow-lg shadow-yellow-400/50;
+  }
+  
+  /* Interactive Elements */
+  .quick-action {
+    @apply glass-card border-2 border-dashed border-white/30 text-center cursor-pointer transition-all duration-300 hover:border-white/50 hover:bg-white/20 hover:-translate-y-1 hover:shadow-glass-lg;
+  }
+  
+  .progress-bar {
+    @apply glass rounded-full h-2 overflow-hidden;
+  }
+  
+  .progress-fill {
+    @apply h-full rounded-full transition-all duration-300 ease-in-out bg-gradient-to-r from-blue-400 to-purple-500;
+  }
+  
+  /* Sidebar Styling */
+  .sidebar-item {
+    @apply w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-white/80;
+  }
+  
+  .sidebar-item-active {
+    @apply glass-medium text-white shadow-inner-glass;
+  }
+  
+  .sidebar-item-inactive {
+    @apply hover:bg-white/10 hover:text-white;
+  }
+  
+  /* Cards and Panels */
+  .metric-card {
+    @apply glass-card text-white;
+  }
+  
+  .activity-item {
+    @apply flex items-start space-x-3 p-3 hover:bg-white/10 rounded-lg transition-all duration-200 text-white/90;
+  }
+  
+  /* Special Effects */
+  .glass-shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent
+    );
+    background-size: 200% 100%;
+    animation: glass-shimmer 3s ease-in-out infinite;
+  }
+  
+  .floating-element {
+    @apply animate-float;
+  }
+  
+  .glow-effect {
+    @apply animate-glow;
+  }
+  
+  /* Navigation */
+  .nav-glass {
+    @apply glass-header sticky top-0 z-50;
+  }
+  
+  /* Modal and Overlay */
+  .modal-overlay {
+    @apply fixed inset-0 bg-black/50 backdrop-blur-sm z-50;
+  }
+  
+  .modal-content {
+    @apply glass-panel max-w-lg mx-auto mt-20;
+  }
+  
+  /* Form Elements */
+  .form-glass {
+    @apply glass-panel space-y-6;
+  }
+  
+  .label-glass {
+    @apply block text-sm font-medium text-white/90 mb-2;
+  }
+  
+  /* Responsive Glassmorphism */
+  @media (max-width: 768px) {
+    .glass-card {
+      @apply p-4;
+    }
+    
+    .glass-panel {
+      @apply p-6;
+    }
+  }
+}

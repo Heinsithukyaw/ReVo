@@ -1,0 +1,10 @@
+agents:
+  code_generation:
+    enabled: true
+    model: deepseek-r1
+  data_analysis:
+    enabled: true
+    model: deepseek-r1
+  task_automation:
+    enabled: true
+    model: deepseek-r1

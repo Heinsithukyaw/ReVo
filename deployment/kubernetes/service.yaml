@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: revoagent-service
+  namespace: revoagent
+  labels:
+    app: revoagent
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8000"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: revoagent
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: revoagent-headless
+  namespace: revoagent
+  labels:
+    app: revoagent
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: revoagent

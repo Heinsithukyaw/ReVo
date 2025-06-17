@@ -1,0 +1,18 @@
+{
+  "old_imports": [
+    "from src.revoagent.core import *",
+    "from src.revoagent.engines import *",
+    "from src.revoagent.agents import *"
+  ],
+  "new_imports": [
+    "from packages.core import *",
+    "from packages.engines import *",
+    "from packages.agents import *"
+  ],
+  "migration_notes": [
+    "Update all imports to use new package structure",
+    "Use centralized config: from packages.core.config import config",
+    "Import engines: from packages.engines import ReasoningEngine",
+    "Import agents: from packages.agents import CodeGenerationAgent"
+  ]
+}

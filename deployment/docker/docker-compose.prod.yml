@@ -1,0 +1,139 @@
+# 🚀 reVoAgent Production Environment
+version: '3.8'
+
+services:
+  # Production Backend Service
+  backend:
+    build:
+      context: ../..
+      dockerfile: deployment/docker/Dockerfile
+      target: production
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=${DATABASE_URL:-postgresql://revoagent:${POSTGRES_PASSWORD}@postgres:5432/revoagent}
+      - SECRET_KEY=${SECRET_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - revoagent_data:/app/data
+      - revoagent_logs:/app/logs
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - revoagent_network
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # Production PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=revoagent
+      - POSTGRES_USER=revoagent
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - revoagent_network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # Production Redis
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    networks:
+      - revoagent_network
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+
+  # Nginx Load Balancer & Static File Server
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - revoagent_static:/var/www/static:ro
+    depends_on:
+      - backend
+    networks:
+      - revoagent_network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+
+  # Monitoring with Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - revoagent_network
+    restart: unless-stopped
+
+  # Grafana for metrics visualization
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - revoagent_network
+    restart: unless-stopped
+
+volumes:
+  revoagent_data:
+  revoagent_logs:
+  revoagent_static:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  revoagent_network:
+    driver: bridge
+
+# Production secrets (use Docker Swarm secrets in production)
+secrets:
+  postgres_password:
+    external: true
+  redis_password:
+    external: true
+  secret_key:
+    external: true

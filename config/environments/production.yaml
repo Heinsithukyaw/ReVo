@@ -1,0 +1,7 @@
+ai:
+  models_path: /app/models
+database:
+  url: ${DATABASE_URL}
+debug: false
+environment: production
+log_level: WARNING

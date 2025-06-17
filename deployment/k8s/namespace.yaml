@@ -1,0 +1,49 @@
+# 🚀 reVoAgent Kubernetes Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: revoagent
+  labels:
+    name: revoagent
+    app: revoagent-platform
+    version: v1.0.0
+    environment: production
+---
+# Resource Quota for the namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: revoagent-quota
+  namespace: revoagent
+spec:
+  hard:
+    requests.cpu: "4"
+    requests.memory: 8Gi
+    limits.cpu: "8"
+    limits.memory: 16Gi
+    persistentvolumeclaims: "10"
+    services: "10"
+    secrets: "10"
+    configmaps: "10"
+---
+# Network Policy for security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: revoagent-network-policy
+  namespace: revoagent
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: revoagent
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+  egress:
+  - {} # Allow all egress traffic

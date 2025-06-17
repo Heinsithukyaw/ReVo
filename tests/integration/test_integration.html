@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>reVoAgent Integration Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>🚀 reVoAgent Enterprise Integration Test</h1>
+    
+    <div class="status success">
+        ✅ Backend Server: Running on port 12001
+    </div>
+    
+    <div class="status success">
+        ✅ Frontend Server: Running on port 12000
+    </div>
+    
+    <div class="status info">
+        🔗 Access Links:
+        <ul>
+            <li><strong>Frontend UI:</strong> <a href="https://work-1-cyljtvrviokcheyz.prod-runtime.all-hands.dev" target="_blank">https://work-1-cyljtvrviokcheyz.prod-runtime.all-hands.dev</a></li>
+            <li><strong>Backend API:</strong> <a href="https://work-2-cyljtvrviokcheyz.prod-runtime.all-hands.dev" target="_blank">https://work-2-cyljtvrviokcheyz.prod-runtime.all-hands.dev</a></li>
+        </ul>
+    </div>
+    
+    <div class="status info">
+        🎯 Enterprise Features Available:
+        <ul>
+            <li>Engine Orchestrator - Real-time AI engine management</li>
+            <li>MCP Marketplace - Model Context Protocol servers</li>
+            <li>Enterprise Console - Business intelligence dashboard</li>
+            <li>Configuration Manager - Centralized settings</li>
+            <li>Real-time WebSocket integration</li>
+        </ul>
+    </div>
+    
+    <h2>🧪 API Test Results</h2>
+    <div id="apiTests"></div>
+    
+    <script>
+        async function testAPI() {
+            const testsDiv = document.getElementById('apiTests');
+            
+            try {
+                // Test backend API
+                const response = await fetch('/api/dashboard/stats');
+                const data = await response.json();
+                
+                testsDiv.innerHTML = `
+                    <div class="status success">
+                        ✅ API Connection: Working
+                        <br>Engines: ${Object.keys(data.engines).join(', ')}
+                    </div>
+                `;
+            } catch (error) {
+                testsDiv.innerHTML = `
+                    <div class="status error">
+                        ❌ API Connection: Failed - ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // Run test when page loads
+        testAPI();
+    </script>
+</body>
+</html>

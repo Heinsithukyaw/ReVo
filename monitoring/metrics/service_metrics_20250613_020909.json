@@ -1,0 +1,50 @@
+{
+  "revoagent-api": {
+    "service_name": "revoagent-api",
+    "pid": 1,
+    "cpu_percent": 0.0,
+    "memory_percent": 0.07787505439891429,
+    "memory_rss_mb": 12.44921875,
+    "memory_vms_mb": 101.8984375,
+    "num_threads": 2,
+    "num_fds": 4,
+    "status": "sleeping",
+    "create_time": "2025-06-13T00:48:24.490000"
+  },
+  "revoagent-backend": {
+    "service_name": "revoagent-backend",
+    "pid": 1,
+    "cpu_percent": 0.0,
+    "memory_percent": 0.07787505439891429,
+    "memory_rss_mb": 12.44921875,
+    "memory_vms_mb": 101.8984375,
+    "num_threads": 2,
+    "num_fds": 4,
+    "status": "sleeping",
+    "create_time": "2025-06-13T00:48:24.490000"
+  },
+  "revoagent-frontend": {
+    "service_name": "revoagent-frontend",
+    "pid": 85,
+    "cpu_percent": 0.0,
+    "memory_percent": 0.46575977781540806,
+    "memory_rss_mb": 74.45703125,
+    "memory_vms_mb": 1032.35546875,
+    "num_threads": 11,
+    "num_fds": 29,
+    "status": "sleeping",
+    "create_time": "2025-06-13T00:48:43.020000"
+  },
+  "revoagent-memory": {
+    "service_name": "revoagent-memory",
+    "pid": 1,
+    "cpu_percent": 0.0,
+    "memory_percent": 0.07787505439891429,
+    "memory_rss_mb": 12.44921875,
+    "memory_vms_mb": 101.8984375,
+    "num_threads": 2,
+    "num_fds": 4,
+    "status": "sleeping",
+    "create_time": "2025-06-13T00:48:24.490000"
+  }
+}

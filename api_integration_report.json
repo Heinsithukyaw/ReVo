@@ -1,0 +1,68 @@
+{
+  "timestamp": "2025-06-16T10:17:45.861027",
+  "setup_type": "API Integration",
+  "api_keys_configured": [
+    "ANTHROPIC_API_KEY",
+    "GEMINI_API_KEY"
+  ],
+  "packages_installed": [
+    "openai>=1.0.0",
+    "anthropic>=0.25.0",
+    "google-generativeai>=0.5.0",
+    "fastapi>=0.100.0",
+    "uvicorn>=0.20.0",
+    "pydantic>=2.0.0",
+    "aiofiles>=23.0.0"
+  ],
+  "system_info": {
+    "python_version": "3.12.11 | packaged by conda-forge | (main, Jun  4 2025, 14:45:31) [GCC 13.3.0]",
+    "platform": "linux",
+    "project_root": "/workspace/reVoAgent"
+  },
+  "api_providers": [
+    {
+      "name": "deepseek_api",
+      "display_name": "Deepseek Api",
+      "model": "deepseek-r1",
+      "cost_per_1k_tokens": 0.0014,
+      "has_api_key": false,
+      "is_current": false
+    },
+    {
+      "name": "openai_api",
+      "display_name": "Openai Api",
+      "model": "gpt-4o-mini",
+      "cost_per_1k_tokens": 0.015,
+      "has_api_key": false,
+      "is_current": false
+    },
+    {
+      "name": "anthropic_api",
+      "display_name": "Anthropic Api",
+      "model": "claude-3-haiku-20240307",
+      "cost_per_1k_tokens": 0.0125,
+      "has_api_key": true,
+      "is_current": false
+    },
+    {
+      "name": "gemini_api",
+      "display_name": "Gemini Api",
+      "model": "gemini-1.5-flash",
+      "cost_per_1k_tokens": 0.0075,
+      "has_api_key": true,
+      "is_current": true
+    }
+  ],
+  "provider_status": {
+    "current_provider": "gemini_api",
+    "fallback_enabled": true,
+    "total_providers": 4,
+    "available_providers": 2,
+    "provider_priority": [
+      "deepseek_api",
+      "gemini_api",
+      "openai_api",
+      "anthropic_api"
+    ]
+  }
+}

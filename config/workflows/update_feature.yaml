@@ -1,0 +1,379 @@
+# Update Feature Workflow
+# Intelligent feature development and integration
+
+name: Update Feature
+description: Intelligent workflow for adding or updating features in existing projects
+version: "1.0"
+
+# Input parameters
+params:
+  feature_description:
+    type: string
+    description: "Description of the feature to add or update"
+    required: true
+    validation:
+      min_length: 10
+      max_length: 500
+  project_path:
+    type: string
+    description: "Path to the project"
+    required: false
+    default: "."
+  implementation_approach:
+    type: string
+    description: "Implementation approach"
+    required: false
+    default: "incremental"
+    options:
+      - "incremental"
+      - "comprehensive"
+      - "minimal"
+  include_tests:
+    type: boolean
+    description: "Include test generation"
+    required: false
+    default: true
+  include_documentation:
+    type: boolean
+    description: "Update documentation"
+    required: false
+    default: true
+  review_mode:
+    type: boolean
+    description: "Generate code for review instead of direct implementation"
+    required: false
+    default: false
+
+# Workflow execution steps
+steps:
+  - id: analyze_project
+    name: Analyze Project Structure
+    type: agent_task
+    agent_type: CodeAnalysisAgent
+    instruction: "Analyze project structure and identify relevant files"
+    description: "Analyzing project structure..."
+    timeout: 90
+    inputs:
+      project_path: "{project_path}"
+      analysis_type: "structure"
+      feature_context: "{feature_description}"
+    outputs:
+      - project_type
+      - relevant_files
+      - architecture_pattern
+      - dependencies
+      - existing_features
+
+  - id: understand_requirements
+    name: Understand Feature Requirements
+    type: agent_task
+    agent_type: RequirementAnalyzerAgent
+    instruction: "Analyze and break down feature requirements"
+    description: "Understanding feature requirements..."
+    dependencies: ["analyze_project"]
+    timeout: 60
+    inputs:
+      feature_description: "{feature_description}"
+      project_context: "{analyze_project.outputs}"
+      implementation_approach: "{implementation_approach}"
+    outputs:
+      - requirements_breakdown
+      - acceptance_criteria
+      - technical_considerations
+      - potential_impacts
+
+  - id: design_solution
+    name: Design Implementation Solution
+    type: agent_task
+    agent_type: CreativeEngine
+    instruction: "Design implementation solution for the feature"
+    description: "Designing implementation solution..."
+    dependencies: ["understand_requirements"]
+    timeout: 120
+    inputs:
+      requirements: "{understand_requirements.outputs}"
+      project_structure: "{analyze_project.outputs}"
+      approach: "{implementation_approach}"
+    outputs:
+      - implementation_plan
+      - code_changes
+      - new_files
+      - modified_files
+      - integration_points
+
+  - id: validate_design
+    name: Validate Design Against Best Practices
+    type: agent_task
+    agent_type: ArchitectureValidatorAgent
+    instruction: "Validate design against best practices and patterns"
+    description: "Validating design..."
+    dependencies: ["design_solution"]
+    timeout: 45
+    inputs:
+      design: "{design_solution.outputs}"
+      project_type: "{analyze_project.outputs.project_type}"
+      architecture: "{analyze_project.outputs.architecture_pattern}"
+    outputs:
+      - validation_results
+      - recommendations
+      - potential_issues
+      - design_score
+
+  - id: generate_implementation
+    name: Generate Implementation Code
+    type: conditional
+    description: "Generating implementation code..."
+    dependencies: ["validate_design"]
+    conditions:
+      if: "params.review_mode == false"
+    then:
+      - type: parallel_tasks
+        tasks:
+          - id: generate_core_code
+            type: agent_task
+            agent_type: CodeGeneratorAgent
+            instruction: "Generate core implementation code"
+            inputs:
+              implementation_plan: "{design_solution.outputs.implementation_plan}"
+              code_changes: "{design_solution.outputs.code_changes}"
+              project_context: "{analyze_project.outputs}"
+
+          - id: generate_supporting_code
+            type: agent_task
+            agent_type: CodeGeneratorAgent
+            instruction: "Generate supporting code and utilities"
+            inputs:
+              supporting_files: "{design_solution.outputs.new_files}"
+              project_context: "{analyze_project.outputs}"
+
+  - id: generate_review_code
+    name: Generate Code for Review
+    type: conditional
+    description: "Generating code for review..."
+    dependencies: ["validate_design"]
+    conditions:
+      if: "params.review_mode == true"
+    then:
+      - type: agent_task
+        agent_type: CodeGeneratorAgent
+        instruction: "Generate code snippets for review"
+        inputs:
+          implementation_plan: "{design_solution.outputs.implementation_plan}"
+          review_mode: true
+          include_comments: true
+
+  - id: apply_code_changes
+    name: Apply Code Changes
+    type: conditional
+    description: "Applying code changes to project..."
+    dependencies: ["generate_implementation"]
+    conditions:
+      if: "params.review_mode == false"
+    then:
+      - type: agent_task
+        agent_type: FileEditorAgent
+        instruction: "Apply code changes to project files"
+        inputs:
+          project_path: "{project_path}"
+          code_changes: "{generate_implementation.outputs}"
+          backup_files: true
+        timeout: 90
+
+  - id: generate_tests
+    name: Generate Tests
+    type: conditional
+    description: "Generating tests for the feature..."
+    dependencies: ["apply_code_changes"]
+    conditions:
+      if: "params.include_tests == true and params.review_mode == false"
+    then:
+      - type: agent_task
+        agent_type: TestGeneratorAgent
+        instruction: "Generate comprehensive tests for the feature"
+        inputs:
+          feature_code: "{generate_implementation.outputs}"
+          project_path: "{project_path}"
+          test_types: ["unit", "integration"]
+        timeout: 120
+
+  - id: run_tests
+    name: Run Tests
+    type: conditional
+    description: "Running tests to verify implementation..."
+    dependencies: ["generate_tests"]
+    conditions:
+      if: "params.include_tests == true and params.review_mode == false"
+    then:
+      - type: agent_task
+        agent_type: TestingAgent
+        instruction: "Run tests for the implemented feature"
+        inputs:
+          project_path: "{project_path}"
+          test_scope: "feature"
+          feature_files: "{apply_code_changes.outputs.modified_files}"
+        timeout: 180
+
+  - id: code_quality_check
+    name: Code Quality Check
+    type: conditional
+    description: "Performing code quality analysis..."
+    dependencies: ["run_tests"]
+    conditions:
+      if: "params.review_mode == false"
+    then:
+      - type: parallel_tasks
+        tasks:
+          - id: static_analysis
+            type: agent_task
+            agent_type: StaticAnalyzerAgent
+            instruction: "Perform static code analysis"
+            inputs:
+              files: "{apply_code_changes.outputs.modified_files}"
+              project_path: "{project_path}"
+
+          - id: security_scan
+            type: agent_task
+            agent_type: SecurityAuditorAgent
+            instruction: "Scan for security issues"
+            inputs:
+              files: "{apply_code_changes.outputs.modified_files}"
+              scan_type: "feature_security"
+
+          - id: performance_analysis
+            type: agent_task
+            agent_type: PerformanceAnalyzerAgent
+            instruction: "Analyze performance impact"
+            inputs:
+              files: "{apply_code_changes.outputs.modified_files}"
+              analysis_type: "impact_assessment"
+
+  - id: update_documentation
+    name: Update Documentation
+    type: conditional
+    description: "Updating project documentation..."
+    dependencies: ["code_quality_check"]
+    conditions:
+      if: "params.include_documentation == true and params.review_mode == false"
+    then:
+      - type: agent_task
+        agent_type: DocumentationAgent
+        instruction: "Update project documentation"
+        inputs:
+          project_path: "{project_path}"
+          feature_description: "{feature_description}"
+          implementation_details: "{design_solution.outputs}"
+          api_changes: "{generate_implementation.outputs.api_changes}"
+        timeout: 90
+
+  - id: integration_test
+    name: Integration Test
+    type: conditional
+    description: "Running integration tests..."
+    dependencies: ["update_documentation"]
+    conditions:
+      if: "params.review_mode == false"
+    then:
+      - type: agent_task
+        agent_type: IntegrationTestAgent
+        instruction: "Run integration tests"
+        inputs:
+          project_path: "{project_path}"
+          feature_scope: "{feature_description}"
+        timeout: 240
+
+  - id: generate_summary
+    name: Generate Implementation Summary
+    type: agent_task
+    agent_type: ReportGeneratorAgent
+    instruction: "Generate comprehensive implementation summary"
+    description: "Generating implementation summary..."
+    dependencies: ["integration_test", "generate_review_code"]
+    timeout: 60
+    inputs:
+      feature_description: "{feature_description}"
+      implementation_approach: "{implementation_approach}"
+      review_mode: "{params.review_mode}"
+      design: "{design_solution.outputs}"
+      validation: "{validate_design.outputs}"
+      implementation: "{generate_implementation.outputs}"
+      test_results: "{run_tests.outputs}"
+      quality_results: "{code_quality_check.outputs}"
+      integration_results: "{integration_test.outputs}"
+    outputs:
+      - summary_report
+      - changes_made
+      - test_coverage
+      - quality_metrics
+      - recommendations
+
+  - id: create_pull_request
+    name: Create Pull Request
+    type: conditional
+    description: "Creating pull request for review..."
+    dependencies: ["generate_summary"]
+    conditions:
+      if: "params.review_mode == false and git_repository_detected == true"
+    then:
+      - type: agent_task
+        agent_type: GitAgent
+        instruction: "Create pull request for feature"
+        inputs:
+          project_path: "{project_path}"
+          branch_name: "feature/{feature_description_slug}"
+          commit_message: "Add feature: {feature_description}"
+          pr_title: "Feature: {feature_description}"
+          pr_description: "{generate_summary.outputs.summary_report}"
+          files: "{apply_code_changes.outputs.modified_files}"
+
+  - id: final_notification
+    name: Feature Update Complete
+    type: notification
+    description: "Feature update completed!"
+    dependencies: ["create_pull_request"]
+    outputs:
+      status: "completed"
+      feature: "{feature_description}"
+      approach: "{implementation_approach}"
+      review_mode: "{params.review_mode}"
+      summary: "{generate_summary.outputs.summary_report}"
+      files_changed: "{apply_code_changes.outputs.modified_files}"
+      test_coverage: "{generate_summary.outputs.test_coverage}"
+      quality_score: "{generate_summary.outputs.quality_metrics.overall_score}"
+      next_steps:
+        - condition: "params.review_mode == true"
+          steps:
+            - "Review the generated code snippets"
+            - "Apply changes manually if approved"
+            - "Run tests to verify implementation"
+        - condition: "params.review_mode == false"
+          steps:
+            - "Review the pull request"
+            - "Merge after approval"
+            - "Deploy to staging environment"
+            - "Monitor feature performance"
+
+# Error handling and rollback
+error_handling:
+  on_failure:
+    - rollback_code_changes: true
+    - restore_backups: true
+    - send_error_report: true
+  
+  rollback_steps:
+    - id: restore_files
+      condition: "apply_code_changes.status == 'completed'"
+      action: "restore_backup_files"
+      path: "{project_path}"
+
+    - id: cleanup_branch
+      condition: "create_pull_request.status == 'failed'"
+      action: "delete_feature_branch"
+      branch: "feature/{feature_description_slug}"
+
+# Workflow metadata
+metadata:
+  category: "development"
+  tags: ["feature", "development", "automation", "code_generation"]
+  estimated_duration: "10-30 minutes"
+  complexity: "high"
+  success_rate: 0.85

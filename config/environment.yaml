@@ -1,0 +1,261 @@
+# reVoAgent Enhanced Environment Configuration - Single Source of Truth
+# This file consolidates all environment configurations with enhanced LLM integration
+
+# Enhanced LLM Provider Configuration
+llm:
+  default_model: "deepseek-r1"
+  fallback_enabled: true
+  timeout: 30
+  max_retries: 3
+  
+  providers:
+    deepseek:
+      api_key: ${DEEPSEEK_API_KEY}
+      base_url: "https://api.deepseek.com/v1"
+      models:
+        - "deepseek-r1"
+        - "deepseek-coder"
+      max_tokens: 4096
+      cost_per_1k_tokens: 0.0014
+      
+    openai:
+      api_key: ${OPENAI_API_KEY}
+      base_url: "https://api.openai.com/v1"
+      models:
+        - "gpt-4o-mini"
+        - "gpt-4o"
+        - "gpt-3.5-turbo"
+      max_tokens: 4096
+      cost_per_1k_tokens: 0.015
+      
+    anthropic:
+      api_key: ${ANTHROPIC_API_KEY}
+      base_url: "https://api.anthropic.com/v1"
+      models:
+        - "claude-3-haiku-20240307"
+        - "claude-3-sonnet-20240229"
+      max_tokens: 4096
+      cost_per_1k_tokens: 0.0125
+      
+    gemini:
+      api_key: ${GEMINI_API_KEY}
+      base_url: "https://generativelanguage.googleapis.com/v1"
+      models:
+        - "gemini-1.5-flash"
+        - "gemini-1.5-pro"
+      max_tokens: 4096
+      cost_per_1k_tokens: 0.0075
+
+# Development Environment
+development:
+  backend:
+    host: "0.0.0.0"
+    port: 12001
+    debug: true
+    reload: true
+    cors_origins:
+      - "http://localhost:12000"
+      - "http://127.0.0.1:12000"
+      - "http://localhost:3000"
+      - "http://127.0.0.1:3000"
+  
+  frontend:
+    host: "0.0.0.0"
+    port: 12000
+    api_url: "http://localhost:12001"
+    ws_url: "ws://localhost:12001"
+  
+  database:
+    url: "postgresql://revoagent:revoagent@localhost:5432/revoagent_dev"
+    echo: true
+  
+  redis:
+    url: "redis://localhost:6379/0"
+  
+  logging:
+    level: "DEBUG"
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# Production Environment
+production:
+  backend:
+    host: "0.0.0.0"
+    port: 12001
+    debug: false
+    reload: false
+    cors_origins:
+      - "http://localhost:12000"
+      - "http://127.0.0.1:12000"
+      - "https://work-1-hnniweburjrfvvzu.prod-runtime.all-hands.dev"
+      - "https://work-2-hnniweburjrfvvzu.prod-runtime.all-hands.dev"
+  
+  frontend:
+    host: "0.0.0.0"
+    port: 12000
+    api_url: "http://localhost:12001"
+    ws_url: "ws://localhost:12001"
+  
+  database:
+    url: "postgresql://revoagent:revoagent@postgres:5432/revoagent"
+    echo: false
+  
+  redis:
+    url: "redis://redis:6379/0"
+  
+  logging:
+    level: "INFO"
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# Runtime Environment (for external hosting)
+runtime:
+  backend:
+    host: "0.0.0.0"
+    port: 12001
+    debug: false
+    reload: false
+    cors_origins:
+      - "*"  # Allow all origins for runtime environment
+  
+  frontend:
+    host: "0.0.0.0"
+    port: 12000
+    api_url: "https://work-2-hnniweburjrfvvzu.prod-runtime.all-hands.dev"
+    ws_url: "wss://work-2-hnniweburjrfvvzu.prod-runtime.all-hands.dev"
+  
+  database:
+    url: "postgresql://revoagent:revoagent@localhost:5432/revoagent"
+    echo: false
+  
+  redis:
+    url: "redis://localhost:6379/0"
+  
+  logging:
+    level: "INFO"
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# Enhanced Server Configuration
+server:
+  host: "0.0.0.0"
+  backend_port: 12001
+  frontend_port: 12000
+  api_prefix: "/api"
+  docs_url: "/docs"
+  
+  cors:
+    allow_origins:
+      - "http://localhost:12000"
+      - "http://127.0.0.1:12000"
+      - "http://localhost:3000"
+      - "http://127.0.0.1:3000"
+    allow_credentials: true
+    allow_methods: ["*"]
+    allow_headers: ["*"]
+
+# AI Models Configuration (Legacy + Enhanced)
+models:
+  local:
+    deepseek_r1:
+      name: "DeepSeek R1"
+      endpoint: "http://localhost:8080"
+      type: "gguf"
+      cost_per_token: 0.0
+    
+    llama_3_1_70b:
+      name: "Llama 3.1 70B"
+      endpoint: "http://localhost:8081"
+      type: "gguf"
+      cost_per_token: 0.0
+  
+  cloud:
+    openai:
+      api_key: "${OPENAI_API_KEY}"
+      models: ["gpt-4", "gpt-3.5-turbo", "gpt-4o-mini"]
+      cost_per_token: 0.00002
+    
+    anthropic:
+      api_key: "${ANTHROPIC_API_KEY}"
+      models: ["claude-3-opus", "claude-3-sonnet", "claude-3-haiku"]
+      cost_per_token: 0.000015
+
+# Database Configuration (enhanced)
+database:
+  type: "sqlite"  # or postgresql, mysql
+  url: ${DATABASE_URL:-"sqlite:///./revoagent.db"}
+  pool_size: 10
+  pool_timeout: 30
+
+# Redis Configuration (for caching)
+redis:
+  url: ${REDIS_URL:-"redis://localhost:6379"}
+  timeout: 5
+
+# Security Configuration
+security:
+  secret_key: ${SECRET_KEY:-"your-secret-key-here"}
+  algorithm: "HS256"
+  access_token_expire_minutes: 30
+  
+  jwt:
+    secret_key: "${JWT_SECRET_KEY:-revoagent-dev-secret}"
+    algorithm: "HS256"
+    expire_minutes: 1440  # 24 hours
+  
+  cors:
+    allow_credentials: true
+    allow_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    allow_headers: ["*"]
+  
+  rate_limiting:
+    requests_per_minute: 100
+    burst_size: 20
+
+# Enhanced Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/revoagent.log"
+  max_size: "10MB"
+  backup_count: 5
+
+# Enhanced Feature Flags
+features:
+  multi_agent_chat: true
+  streaming_chat: true
+  websocket_support: true
+  rate_limiting: true
+  caching: true
+  metrics: true
+  memory_system: true
+  three_engine_architecture: true
+  multi_agent_collaboration: true
+  real_time_monitoring: true
+  external_integrations: true
+  cost_optimization: true
+
+# Enhanced Performance Settings
+performance:
+  worker_processes: 1
+  max_requests: 1000
+  request_timeout: 60
+  keepalive_timeout: 5
+
+# Enhanced Monitoring Configuration
+monitoring:
+  health_check_interval: 30
+  metrics_enabled: true
+  prometheus_port: 9090
+  
+  prometheus:
+    enabled: true
+    port: 9090
+    metrics_path: "/metrics"
+  
+  grafana:
+    enabled: true
+    port: 3001
+    admin_password: "${GRAFANA_PASSWORD:-revoagent}"
+  
+  logging:
+    file_path: "./logs/revoagent.log"
+    max_size: "100MB"
+    backup_count: 5

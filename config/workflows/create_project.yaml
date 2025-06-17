@@ -1,0 +1,271 @@
+# Create Project Workflow
+# Comprehensive project creation with intelligent scaffolding
+
+name: Create New Project
+description: A workflow to scaffold a new software project with best practices
+version: "1.0"
+
+# Input parameters with validation
+params:
+  name:
+    type: string
+    description: "The name of the project directory"
+    required: true
+    validation:
+      pattern: "^[a-zA-Z0-9_-]+$"
+      min_length: 3
+      max_length: 50
+  template:
+    type: string
+    description: "The project template to use"
+    required: true
+    default: "python-fastapi"
+    options:
+      - "python-fastapi"
+      - "react-typescript"
+      - "react-redux"
+      - "node-express"
+      - "vue-typescript"
+      - "django-rest"
+      - "flask-api"
+      - "nextjs-app"
+  description:
+    type: string
+    description: "Project description"
+    required: false
+    default: "A new project created with ReVo AI"
+  features:
+    type: array
+    description: "Additional features to include"
+    required: false
+    default: []
+    options:
+      - "authentication"
+      - "database"
+      - "testing"
+      - "docker"
+      - "ci_cd"
+      - "monitoring"
+
+# Workflow execution steps
+steps:
+  - id: validate_inputs
+    name: Validate Project Parameters
+    type: validation
+    description: "Validating project parameters..."
+    conditions:
+      - check: "params.name not in existing_projects"
+        error: "Project name already exists"
+      - check: "params.template in supported_templates"
+        error: "Unsupported template"
+    timeout: 10
+
+  - id: create_directory
+    name: Create Project Directory
+    type: agent_task
+    agent_type: FileSystemAgent
+    instruction: "Create project directory structure"
+    inputs:
+      path: "./projects/{name}"
+      template: "{template}"
+    description: "Creating project directory structure..."
+    dependencies: ["validate_inputs"]
+    timeout: 30
+
+  - id: generate_boilerplate
+    name: Generate Project Boilerplate
+    type: agent_task
+    agent_type: CodeGeneratorAgent
+    instruction: "Generate project files from template"
+    inputs:
+      destination: "./projects/{name}"
+      template_name: "{template}"
+      project_name: "{name}"
+      description: "{description}"
+      features: "{features}"
+    description: "Generating project files from template..."
+    dependencies: ["create_directory"]
+    timeout: 120
+    retry_count: 0
+    max_retries: 2
+
+  - id: setup_git_repo
+    name: Initialize Git Repository
+    type: agent_task
+    agent_type: GitAgent
+    instruction: "Initialize git repository with initial commit"
+    inputs:
+      working_directory: "./projects/{name}"
+      initial_commit_message: "Initial commit: {name} project created with ReVo AI"
+      gitignore_template: "{template}"
+    description: "Initializing Git repository..."
+    dependencies: ["generate_boilerplate"]
+    timeout: 60
+    conditions:
+      continue_on_failure: true
+
+  - id: install_dependencies
+    name: Install Project Dependencies
+    type: conditional
+    description: "Installing project dependencies..."
+    dependencies: ["setup_git_repo"]
+    conditions:
+      if: "template in ['python-fastapi', 'django-rest', 'flask-api']"
+      then:
+        - type: agent_task
+          agent_type: TerminalAgent
+          instruction: "Install Python dependencies"
+          inputs:
+            command: "cd ./projects/{name} && python -m pip install -r requirements.txt"
+            working_directory: "./projects/{name}"
+      elif: "template in ['react-typescript', 'react-redux', 'node-express', 'vue-typescript', 'nextjs-app']"
+      then:
+        - type: agent_task
+          agent_type: TerminalAgent
+          instruction: "Install Node.js dependencies"
+          inputs:
+            command: "cd ./projects/{name} && npm install"
+            working_directory: "./projects/{name}"
+    timeout: 300
+
+  - id: setup_features
+    name: Setup Additional Features
+    type: parallel_tasks
+    description: "Setting up additional features..."
+    dependencies: ["install_dependencies"]
+    conditions:
+      if: "len(features) > 0"
+    tasks:
+      - id: setup_auth
+        condition: "'authentication' in features"
+        type: agent_task
+        agent_type: CodeGeneratorAgent
+        instruction: "Add authentication scaffolding"
+        inputs:
+          project_path: "./projects/{name}"
+          feature: "authentication"
+          template: "{template}"
+
+      - id: setup_database
+        condition: "'database' in features"
+        type: agent_task
+        agent_type: CodeGeneratorAgent
+        instruction: "Add database configuration"
+        inputs:
+          project_path: "./projects/{name}"
+          feature: "database"
+          template: "{template}"
+
+      - id: setup_testing
+        condition: "'testing' in features"
+        type: agent_task
+        agent_type: TestingAgent
+        instruction: "Setup testing framework"
+        inputs:
+          project_path: "./projects/{name}"
+          template: "{template}"
+
+      - id: setup_docker
+        condition: "'docker' in features"
+        type: agent_task
+        agent_type: DockerAgent
+        instruction: "Create Docker configuration"
+        inputs:
+          project_path: "./projects/{name}"
+          template: "{template}"
+
+  - id: generate_documentation
+    name: Generate Project Documentation
+    type: agent_task
+    agent_type: DocumentationAgent
+    instruction: "Generate comprehensive project documentation"
+    inputs:
+      project_path: "./projects/{name}"
+      project_name: "{name}"
+      description: "{description}"
+      template: "{template}"
+      features: "{features}"
+    description: "Generating project documentation..."
+    dependencies: ["setup_features"]
+    timeout: 90
+
+  - id: run_initial_tests
+    name: Run Initial Tests
+    type: agent_task
+    agent_type: TestingAgent
+    instruction: "Run initial project tests to verify setup"
+    inputs:
+      project_path: "./projects/{name}"
+      test_type: "smoke"
+    description: "Running initial tests..."
+    dependencies: ["generate_documentation"]
+    conditions:
+      continue_on_failure: true
+    timeout: 120
+
+  - id: security_scan
+    name: Initial Security Scan
+    type: agent_task
+    agent_type: SecurityAuditorAgent
+    instruction: "Perform initial security scan"
+    inputs:
+      project_path: "./projects/{name}"
+      scan_type: "dependencies"
+    description: "Performing security scan..."
+    dependencies: ["run_initial_tests"]
+    conditions:
+      continue_on_failure: true
+    timeout: 60
+
+  - id: project_summary
+    name: Generate Project Summary
+    type: agent_task
+    agent_type: ReportGeneratorAgent
+    instruction: "Generate project creation summary"
+    inputs:
+      project_name: "{name}"
+      project_path: "./projects/{name}"
+      template: "{template}"
+      features: "{features}"
+      test_results: "{run_initial_tests.outputs}"
+      security_results: "{security_scan.outputs}"
+    description: "Generating project summary..."
+    dependencies: ["security_scan"]
+    timeout: 30
+
+  - id: final_notification
+    name: Project Creation Complete
+    type: notification
+    description: "Project creation completed successfully!"
+    dependencies: ["project_summary"]
+    outputs:
+      message: "Project '{name}' created successfully!"
+      path: "./projects/{name}"
+      template: "{template}"
+      features: "{features}"
+      next_steps:
+        - "cd ./projects/{name}"
+        - "Review the generated README.md"
+        - "Start development with your preferred IDE"
+        - "Run tests: npm test (Node.js) or pytest (Python)"
+
+# Error handling and rollback
+error_handling:
+  on_failure:
+    - cleanup_partial_files: true
+    - send_error_report: true
+    - rollback_git_changes: true
+  
+  rollback_steps:
+    - id: cleanup_directory
+      condition: "create_directory.status == 'completed'"
+      action: "remove_directory"
+      path: "./projects/{name}"
+
+# Workflow metadata
+metadata:
+  category: "project_management"
+  tags: ["creation", "scaffolding", "automation"]
+  estimated_duration: "5-10 minutes"
+  complexity: "medium"
+  success_rate: 0.95

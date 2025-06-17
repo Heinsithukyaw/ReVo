@@ -1,0 +1,19 @@
+{
+  "timestamp": "2025-06-13T02:09:43.518255",
+  "cpu_percent": 4.6,
+  "memory_percent": 18.3,
+  "memory_used_gb": 2.4865036010742188,
+  "memory_total_gb": 15.611469268798828,
+  "disk_percent": 6.456595415301266,
+  "disk_used_gb": 18.76070785522461,
+  "disk_total_gb": 290.5665702819824,
+  "network_bytes_sent": 16014741,
+  "network_bytes_recv": 18798241,
+  "load_average": [
+    0.1416015625,
+    0.09375,
+    0.08154296875
+  ],
+  "process_count": 36,
+  "open_files": 0
+}

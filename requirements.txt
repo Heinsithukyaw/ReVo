@@ -1,0 +1,92 @@
+# Updated requirements.txt with latest versions
+fastapi>=0.115.12
+uvicorn[standard]>=0.34.3
+pydantic>=2.11.7
+python-multipart>=0.0.20
+websockets>=15.0.1
+aiofiles>=24.1.0
+
+# Real AI Provider Dependencies
+openai>=1.86.0
+anthropic>=0.54.0
+
+# Optional: Local AI Models
+transformers>=4.52.4
+torch>=2.7.1
+sentence-transformers>=4.1.0
+
+# Optional: GGUF Models for Local Processing (Zero Cost)
+# Uncomment for local AI processing with DeepSeek R1
+# llama-cpp-python>=0.2.0
+
+# Database and Storage
+aiosqlite>=0.21.0
+redis>=6.2.0
+
+# Monitoring and Logging
+prometheus-client>=0.22.1
+structlog>=25.4.0
+
+# Development and Testing
+pytest>=8.4.0
+pytest-asyncio>=1.0.0
+httpx>=0.28.1
+pytest-cov>=6.2.1
+
+# Utilities
+python-dotenv>=1.1.0
+click>=8.2.1
+rich>=14.0.0
+typer>=0.16.0
+
+# Security
+cryptography>=45.0.4
+passlib[bcrypt]>=1.7.4
+
+# Performance
+orjson>=3.10.18
+msgpack>=1.1.1
+
+# Error tracking and monitoring
+sentry-sdk[fastapi]>=2.30.0
+
+# WebSocket and real-time features
+python-socketio>=5.13.0
+python-socketio[asyncio_client]>=5.13.0
+
+# HTTP client for external APIs
+aiohttp>=3.12.13
+requests>=2.32.4
+
+# Rate limiting and caching
+slowapi>=0.1.9
+cachetools>=6.0.0
+
+# Memory and Knowledge Graph Integration
+# cognee>=0.1.15  # Installed separately due to dependency conflicts
+lancedb>=0.23.0
+networkx>=3.5
+neo4j>=5.28.1
+psycopg2-binary>=2.9.10
+
+# Enhanced GitHub Integration
+PyGithub>=2.6.1
+gitpython>=3.1.44
+
+# Enhanced Slack Integration
+slack-sdk>=3.35.0
+
+# Enhanced JIRA Integration
+jira>=3.8.0
+
+# Vector and Embedding Support
+numpy>=2.3.0
+scipy>=1.15.3
+scikit-learn>=1.7.0
+
+# Additional Memory Processing
+pandas>=2.3.0
+sqlalchemy>=2.0.41
+
+# System monitoring (for GGUF integration)
+psutil>=5.9.0

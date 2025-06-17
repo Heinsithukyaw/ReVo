@@ -1,0 +1,478 @@
+openapi: 3.0.3
+info:
+  title: reVoAgent API
+  description: Enterprise AI Development Platform with Cost-Optimized Model Management
+  version: 1.0.0
+  contact:
+    name: reVoAgent Support
+    url: https://github.com/heinzdev11/reVoAgent
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8000
+    description: Development server
+  - url: https://api.revoagent.com
+    description: Production server
+
+security:
+  - bearerAuth: []
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      tags: [System]
+      security: []
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /api/models:
+    get:
+      summary: List available AI models
+      tags: [Models]
+      responses:
+        '200':
+          description: List of available models
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelsResponse'
+
+  /api/models/{modelId}:
+    get:
+      summary: Get model details
+      tags: [Models]
+      parameters:
+        - name: modelId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: deepseek_r1_0528
+      responses:
+        '200':
+          description: Model details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelDetails'
+
+  /api/agents:
+    get:
+      summary: List available agents
+      tags: [Agents]
+      responses:
+        '200':
+          description: List of available agents
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentsResponse'
+
+  /api/agents/{agentId}:
+    get:
+      summary: Get agent details
+      tags: [Agents]
+      parameters:
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: code-analyst
+      responses:
+        '200':
+          description: Agent details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentDetails'
+
+  /api/agents/{agentId}/tasks:
+    post:
+      summary: Start agent task
+      tags: [Agents]
+      parameters:
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskRequest'
+      responses:
+        '200':
+          description: Task started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+
+  /api/chat:
+    post:
+      summary: Send chat message
+      tags: [Chat]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+      responses:
+        '200':
+          description: Chat response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+
+  /api/chat/multi-agent:
+    post:
+      summary: Multi-agent chat session
+      tags: [Chat]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MultiAgentChatRequest'
+      responses:
+        '200':
+          description: Multi-agent responses
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MultiAgentChatResponse'
+
+  /api/analytics/costs:
+    get:
+      summary: Get cost analytics
+      tags: [Analytics]
+      responses:
+        '200':
+          description: Cost analytics data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CostAnalytics'
+
+  /api/analytics/performance:
+    get:
+      summary: Get performance metrics
+      tags: [Analytics]
+      responses:
+        '200':
+          description: Performance metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerformanceMetrics'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: healthy
+        timestamp:
+          type: string
+          format: date-time
+        service:
+          type: string
+          example: reVoAgent Backend API
+        version:
+          type: string
+          example: 1.0.0
+
+    ModelsResponse:
+      type: object
+      properties:
+        models:
+          type: array
+          items:
+            $ref: '#/components/schemas/Model'
+        cost_savings:
+          type: string
+          example: "95%+"
+        local_models_active:
+          type: boolean
+
+    Model:
+      type: object
+      properties:
+        id:
+          type: string
+          example: deepseek_r1_0528
+        name:
+          type: string
+          example: DeepSeek R1 0528
+        type:
+          type: string
+          enum: [local, cloud]
+        cost_per_request:
+          type: number
+          format: float
+        status:
+          type: string
+          enum: [available, unavailable, loading]
+        priority:
+          type: string
+          enum: [primary, secondary, fallback]
+
+    ModelDetails:
+      allOf:
+        - $ref: '#/components/schemas/Model'
+        - type: object
+          properties:
+            performance_metrics:
+              type: object
+              properties:
+                response_time:
+                  type: string
+                success_rate:
+                  type: string
+                last_used:
+                  type: string
+                  format: date-time
+            capabilities:
+              type: array
+              items:
+                type: string
+
+    AgentsResponse:
+      type: object
+      properties:
+        agents:
+          type: array
+          items:
+            $ref: '#/components/schemas/Agent'
+        total_agents:
+          type: integer
+        active_agents:
+          type: integer
+        collaboration_active:
+          type: boolean
+
+    Agent:
+      type: object
+      properties:
+        id:
+          type: string
+          example: code-analyst
+        name:
+          type: string
+          example: Code Analyst
+        status:
+          type: string
+          enum: [active, inactive, busy]
+        specialization:
+          type: string
+        performance_score:
+          type: number
+          format: float
+
+    AgentDetails:
+      allOf:
+        - $ref: '#/components/schemas/Agent'
+        - type: object
+          properties:
+            capabilities:
+              type: array
+              items:
+                type: string
+            performance_metrics:
+              type: object
+            configuration:
+              type: object
+
+    TaskRequest:
+      type: object
+      required:
+        - task_type
+        - input
+      properties:
+        task_type:
+          type: string
+          example: code_analysis
+        input:
+          type: object
+        options:
+          type: object
+
+    TaskResponse:
+      type: object
+      properties:
+        task_id:
+          type: string
+        status:
+          type: string
+          enum: [started, running, completed, failed]
+        estimated_completion:
+          type: string
+        agent_id:
+          type: string
+
+    ChatRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+        context:
+          type: object
+        options:
+          type: object
+
+    ChatResponse:
+      type: object
+      properties:
+        response:
+          type: string
+        model_used:
+          type: string
+        cost:
+          type: number
+          format: float
+        response_time:
+          type: string
+        agents_involved:
+          type: array
+          items:
+            type: string
+        suggestions:
+          type: array
+          items:
+            type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    MultiAgentChatRequest:
+      type: object
+      required:
+        - message
+        - agents
+      properties:
+        session_id:
+          type: string
+        message:
+          type: string
+        code:
+          type: string
+        agents:
+          type: array
+          items:
+            type: string
+
+    MultiAgentChatResponse:
+      type: object
+      properties:
+        session_id:
+          type: string
+        responses:
+          type: array
+          items:
+            type: object
+            properties:
+              agent:
+                type: string
+              response:
+                type: string
+              confidence:
+                type: number
+                format: float
+        consensus:
+          type: string
+        total_cost:
+          type: number
+          format: float
+        collaboration_score:
+          type: number
+          format: float
+
+    CostAnalytics:
+      type: object
+      properties:
+        total_requests:
+          type: integer
+        local_requests:
+          type: integer
+        cloud_requests:
+          type: integer
+        cost_savings:
+          type: string
+        total_cost:
+          type: number
+          format: float
+        estimated_cloud_cost:
+          type: number
+          format: float
+        savings_amount:
+          type: number
+          format: float
+        period:
+          type: string
+
+    PerformanceMetrics:
+      type: object
+      properties:
+        average_response_time:
+          type: string
+        success_rate:
+          type: string
+        throughput:
+          type: string
+        agent_utilization:
+          type: object
+        system_health:
+          type: string
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: string
+            timestamp:
+              type: string
+              format: date-time
+            request_id:
+              type: string
+
+tags:
+  - name: System
+    description: System health and status endpoints
+  - name: Models
+    description: AI model management
+  - name: Agents
+    description: Agent management and tasks
+  - name: Chat
+    description: Chat and communication endpoints
+  - name: Analytics
+    description: Analytics and monitoring

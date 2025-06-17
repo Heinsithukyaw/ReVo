@@ -1,0 +1,300 @@
+# System Status Workflow
+# Comprehensive system health and status monitoring
+
+name: System Status Check
+description: Comprehensive analysis of system health, project status, and performance metrics
+version: "1.0"
+
+# Input parameters
+params:
+  detailed:
+    type: boolean
+    description: "Include detailed analysis"
+    required: false
+    default: false
+  include_projects:
+    type: boolean
+    description: "Include project-specific status"
+    required: false
+    default: true
+  performance_metrics:
+    type: boolean
+    description: "Include performance metrics"
+    required: false
+    default: true
+
+# Workflow execution steps
+steps:
+  - id: system_overview
+    name: System Overview
+    type: agent_task
+    agent_type: SystemMonitorAgent
+    instruction: "Get basic system information"
+    description: "Gathering system overview..."
+    timeout: 30
+    outputs:
+      - cpu_usage
+      - memory_usage
+      - disk_usage
+      - uptime
+      - load_average
+
+  - id: engine_status
+    name: Check Engine Status
+    type: parallel_tasks
+    description: "Checking engine status..."
+    timeout: 60
+    tasks:
+      - id: perfect_recall_status
+        type: agent_task
+        agent_type: EngineMonitorAgent
+        instruction: "Check Perfect Recall Engine status"
+        inputs:
+          engine: "perfect_recall"
+        outputs:
+          - status
+          - memory_usage
+          - query_performance
+          - index_size
+
+      - id: creative_engine_status
+        type: agent_task
+        agent_type: EngineMonitorAgent
+        instruction: "Check Creative Engine status"
+        inputs:
+          engine: "creative"
+        outputs:
+          - status
+          - model_loaded
+          - response_time
+          - queue_size
+
+      - id: parallel_mind_status
+        type: agent_task
+        agent_type: EngineMonitorAgent
+        instruction: "Check Parallel Mind Engine status"
+        inputs:
+          engine: "parallel_mind"
+        outputs:
+          - status
+          - active_tasks
+          - worker_count
+          - task_queue_size
+
+  - id: agent_status
+    name: Check Agent Status
+    type: agent_task
+    agent_type: AgentManagerAgent
+    instruction: "Get status of all registered agents"
+    description: "Checking agent status..."
+    dependencies: ["system_overview"]
+    timeout: 45
+    outputs:
+      - active_agents
+      - agent_health
+      - agent_performance
+      - error_rates
+
+  - id: project_analysis
+    name: Analyze Projects
+    type: conditional
+    description: "Analyzing project status..."
+    dependencies: ["agent_status"]
+    conditions:
+      if: "params.include_projects == true"
+    then:
+      - type: agent_task
+        agent_type: ProjectAnalyzerAgent
+        instruction: "Analyze all projects in workspace"
+        inputs:
+          scan_path: "./projects"
+          include_git_status: true
+          include_dependencies: true
+        outputs:
+          - project_count
+          - project_health
+          - git_status
+          - dependency_issues
+          - test_coverage
+
+  - id: performance_analysis
+    name: Performance Analysis
+    type: conditional
+    description: "Analyzing performance metrics..."
+    dependencies: ["project_analysis"]
+    conditions:
+      if: "params.performance_metrics == true"
+    then:
+      - type: parallel_tasks
+        tasks:
+          - id: response_time_analysis
+            type: agent_task
+            agent_type: PerformanceAnalyzerAgent
+            instruction: "Analyze system response times"
+            inputs:
+              metric_type: "response_time"
+              time_window: "1h"
+
+          - id: throughput_analysis
+            type: agent_task
+            agent_type: PerformanceAnalyzerAgent
+            instruction: "Analyze system throughput"
+            inputs:
+              metric_type: "throughput"
+              time_window: "1h"
+
+          - id: error_rate_analysis
+            type: agent_task
+            agent_type: PerformanceAnalyzerAgent
+            instruction: "Analyze error rates"
+            inputs:
+              metric_type: "error_rate"
+              time_window: "1h"
+
+  - id: security_status
+    name: Security Status Check
+    type: agent_task
+    agent_type: SecurityAuditorAgent
+    instruction: "Perform security status check"
+    description: "Checking security status..."
+    dependencies: ["performance_analysis"]
+    timeout: 90
+    inputs:
+      scan_type: "status_check"
+      include_dependencies: true
+      include_configurations: true
+    outputs:
+      - security_score
+      - vulnerabilities
+      - compliance_status
+      - recommendations
+
+  - id: workflow_status
+    name: Check Workflow Status
+    type: agent_task
+    agent_type: WorkflowMonitorAgent
+    instruction: "Get status of all workflows"
+    description: "Checking workflow status..."
+    dependencies: ["security_status"]
+    timeout: 30
+    outputs:
+      - active_workflows
+      - completed_workflows
+      - failed_workflows
+      - workflow_performance
+
+  - id: resource_utilization
+    name: Resource Utilization Analysis
+    type: agent_task
+    agent_type: ResourceAnalyzerAgent
+    instruction: "Analyze resource utilization patterns"
+    description: "Analyzing resource utilization..."
+    dependencies: ["workflow_status"]
+    timeout: 60
+    inputs:
+      analysis_period: "24h"
+      include_predictions: true
+    outputs:
+      - cpu_trends
+      - memory_trends
+      - disk_trends
+      - network_usage
+      - predictions
+
+  - id: health_score_calculation
+    name: Calculate Overall Health Score
+    type: agent_task
+    agent_type: HealthCalculatorAgent
+    instruction: "Calculate overall system health score"
+    description: "Calculating health score..."
+    dependencies: ["resource_utilization"]
+    timeout: 30
+    inputs:
+      system_metrics: "{system_overview.outputs}"
+      engine_status: "{engine_status.outputs}"
+      agent_status: "{agent_status.outputs}"
+      project_status: "{project_analysis.outputs}"
+      security_status: "{security_status.outputs}"
+      performance_metrics: "{performance_analysis.outputs}"
+    outputs:
+      - overall_score
+      - component_scores
+      - health_trends
+      - recommendations
+
+  - id: generate_report
+    name: Generate Status Report
+    type: agent_task
+    agent_type: ReportGeneratorAgent
+    instruction: "Generate comprehensive status report"
+    description: "Generating status report..."
+    dependencies: ["health_score_calculation"]
+    timeout: 45
+    inputs:
+      report_type: "system_status"
+      include_charts: true
+      format: "markdown"
+      detailed: "{params.detailed}"
+      data:
+        system: "{system_overview.outputs}"
+        engines: "{engine_status.outputs}"
+        agents: "{agent_status.outputs}"
+        projects: "{project_analysis.outputs}"
+        performance: "{performance_analysis.outputs}"
+        security: "{security_status.outputs}"
+        workflows: "{workflow_status.outputs}"
+        resources: "{resource_utilization.outputs}"
+        health: "{health_score_calculation.outputs}"
+    outputs:
+      - report_content
+      - summary
+      - alerts
+      - recommendations
+
+  - id: send_notifications
+    name: Send Status Notifications
+    type: conditional
+    description: "Sending notifications if needed..."
+    dependencies: ["generate_report"]
+    conditions:
+      if: "health_score_calculation.outputs.overall_score < 0.8 or len(generate_report.outputs.alerts) > 0"
+    then:
+      - type: agent_task
+        agent_type: NotificationAgent
+        instruction: "Send status alerts"
+        inputs:
+          alert_level: "warning"
+          recipients: ["admin", "ops_team"]
+          content: "{generate_report.outputs.alerts}"
+
+  - id: final_summary
+    name: Status Check Complete
+    type: summary
+    description: "System status check completed"
+    dependencies: ["send_notifications"]
+    outputs:
+      timestamp: "{workflow.start_time}"
+      duration: "{workflow.duration}"
+      health_score: "{health_score_calculation.outputs.overall_score}"
+      status: "completed"
+      summary: "{generate_report.outputs.summary}"
+      recommendations: "{generate_report.outputs.recommendations}"
+      next_check: "{workflow.start_time + 3600}"  # Next check in 1 hour
+
+# Error handling
+error_handling:
+  on_failure:
+    - continue_with_partial_results: true
+    - log_errors: true
+    - send_error_notification: true
+
+# Workflow metadata
+metadata:
+  category: "monitoring"
+  tags: ["status", "health", "monitoring", "system"]
+  estimated_duration: "2-5 minutes"
+  complexity: "medium"
+  success_rate: 0.98
+  schedule:
+    interval: "1h"  # Run every hour
+    enabled: true

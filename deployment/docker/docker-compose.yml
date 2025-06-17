@@ -1,0 +1,95 @@
+# 🐳 reVoAgent Development Environment
+version: '3.8'
+
+services:
+  # Backend API Service
+  backend:
+    build:
+      context: ../..
+      dockerfile: deployment/docker/Dockerfile
+      target: development
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=sqlite:///./data/revoagent_dev.db
+      - SECRET_KEY=dev-secret-key-change-in-production
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    volumes:
+      - ../..:/app
+      - revoagent_data:/app/data
+      - revoagent_logs:/app/logs
+    depends_on:
+      - redis
+    networks:
+      - revoagent_network
+    restart: unless-stopped
+
+  # Frontend Development Server
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: ../deployment/docker/Dockerfile.frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+      - VITE_WS_URL=ws://localhost:8000
+    volumes:
+      - ../../frontend:/app
+      - /app/node_modules
+    networks:
+      - revoagent_network
+    restart: unless-stopped
+
+  # Redis for caching and session storage
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - revoagent_network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # PostgreSQL for production-like development
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=revoagent_dev
+      - POSTGRES_USER=revoagent
+      - POSTGRES_PASSWORD=dev_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - revoagent_network
+    restart: unless-stopped
+
+  # Nginx reverse proxy for development
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.dev.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - revoagent_network
+    restart: unless-stopped
+
+volumes:
+  revoagent_data:
+  revoagent_logs:
+  redis_data:
+  postgres_data:
+
+networks:
+  revoagent_network:
+    driver: bridge

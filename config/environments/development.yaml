@@ -1,0 +1,7 @@
+ai:
+  models_path: ./models
+database:
+  url: sqlite:///dev.db
+debug: true
+environment: development
+log_level: INFO

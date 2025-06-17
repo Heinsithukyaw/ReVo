@@ -1,0 +1,44 @@
+# reVoAgent Port Configuration - Single Source of Truth
+# This file defines all port allocations for the entire system
+
+production:
+  backend: 12001
+  frontend: 12000
+  api_gateway: 8000
+  websocket: 12001  # Same as backend for WebSocket upgrade
+  
+development:
+  backend: 12001
+  frontend: 12000
+  api_gateway: 8000
+  websocket: 12001
+  
+infrastructure:
+  postgres: 5432
+  redis: 6379
+  prometheus: 9090
+  grafana: 3001
+  elasticsearch: 9200
+  kibana: 5601
+  nginx: 80
+  nginx_ssl: 443
+  
+models:
+  llama_cpp: 8080
+  deepseek: 8081
+  local_models: 8082
+  
+monitoring:
+  node_exporter: 9100
+  redis_exporter: 9121
+  postgres_exporter: 9187
+  
+# Reserved ports - DO NOT USE
+reserved:
+  - 3000  # Conflicted with dashboard
+  - 8001  # Legacy microservice
+  - 8002  # Legacy microservice
+  - 8003  # Legacy microservice
+  - 8004  # Legacy microservice
+  - 8005  # Legacy microservice
+  - 8765  # Legacy three-engine coordinator

@@ -1,0 +1,10 @@
+engines:
+  execution:
+    enabled: true
+    priority: 2
+  learning:
+    enabled: true
+    priority: 3
+  reasoning:
+    enabled: true
+    priority: 1

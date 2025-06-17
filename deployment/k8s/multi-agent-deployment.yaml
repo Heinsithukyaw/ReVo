@@ -1,0 +1,891 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: revoagent-agents
+  labels:
+    name: revoagent-agents
+    app: revoagent
+    tier: agents
+
+---
+# ConfigMap for Agent Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agent-config
+  namespace: revoagent-agents
+data:
+  agent.yaml: |
+    agents:
+      code_analyst:
+        enabled: true
+        replicas: 3
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
+        specializations:
+          - code_review
+          - architecture_analysis
+          - performance_optimization
+          - security_analysis
+      
+      debug_detective:
+        enabled: true
+        replicas: 2
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
+        specializations:
+          - bug_detection
+          - error_analysis
+          - debugging_strategies
+          - root_cause_analysis
+      
+      workflow_manager:
+        enabled: true
+        replicas: 2
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "2Gi"
+        specializations:
+          - process_automation
+          - workflow_design
+          - task_orchestration
+          - pipeline_optimization
+      
+      coordinator:
+        enabled: true
+        replicas: 1
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "2Gi"
+        specializations:
+          - task_coordination
+          - agent_collaboration
+          - context_management
+          - decision_making
+
+  collaboration.yaml: |
+    patterns:
+      code_review_swarm:
+        agents: ["code_analyst", "debug_detective"]
+        pattern: "parallel_analysis"
+        merge_strategy: "consensus_weighted"
+        timeout: 300
+      
+      debugging_cascade:
+        agents: ["debug_detective", "code_analyst", "workflow_manager"]
+        pattern: "sequential_cascade"
+        merge_strategy: "progressive_refinement"
+        timeout: 600
+      
+      comprehensive_swarm:
+        agents: ["code_analyst", "debug_detective", "workflow_manager", "coordinator"]
+        pattern: "swarm_intelligence"
+        merge_strategy: "holistic_synthesis"
+        timeout: 900
+
+---
+# Secret for Agent Authentication
+apiVersion: v1
+kind: Secret
+metadata:
+  name: agent-secrets
+  namespace: revoagent-agents
+type: Opaque
+data:
+  jwt-secret: cmV2b2FnZW50LWp3dC1zZWNyZXQtMjAyNQ== # base64 encoded
+  redis-password: cmV2b2FnZW50LXJlZGlzLXBhc3M= # base64 encoded
+  model-api-key: bW9kZWwtYXBpLWtleS1zZWNyZXQ= # base64 encoded
+
+---
+# Redis for Agent Communication
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-redis
+  namespace: revoagent-agents
+  labels:
+    app: agent-redis
+    tier: cache
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent-redis
+  template:
+    metadata:
+      labels:
+        app: agent-redis
+        tier: cache
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        ports:
+        - containerPort: 6379
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: agent-secrets
+              key: redis-password
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: redis-data
+        persistentVolumeClaim:
+          claimName: redis-pvc
+
+---
+# Redis Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-redis
+  namespace: revoagent-agents
+  labels:
+    app: agent-redis
+    tier: cache
+spec:
+  ports:
+  - port: 6379
+    targetPort: 6379
+  selector:
+    app: agent-redis
+
+---
+# Redis PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-pvc
+  namespace: revoagent-agents
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+# Code Analyst Agent Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: code-analyst-agent
+  namespace: revoagent-agents
+  labels:
+    app: code-analyst-agent
+    tier: agent
+    agent-type: code-analyst
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: code-analyst-agent
+  template:
+    metadata:
+      labels:
+        app: code-analyst-agent
+        tier: agent
+        agent-type: code-analyst
+    spec:
+      containers:
+      - name: code-analyst
+        image: revoagent/code-analyst:latest
+        ports:
+        - containerPort: 8000
+        - containerPort: 8001
+        env:
+        - name: AGENT_TYPE
+          value: "code_analyst"
+        - name: AGENT_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: REDIS_URL
+          value: "redis://agent-redis:6379"
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: agent-secrets
+              key: redis-password
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: agent-secrets
+              key: jwt-secret
+        - name: MODEL_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agent-secrets
+              key: model-api-key
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: METRICS_ENABLED
+          value: "true"
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
+        volumeMounts:
+        - name: agent-config
+          mountPath: /app/config
+        - name: agent-logs
+          mountPath: /app/logs
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+      volumes:
+      - name: agent-config
+        configMap:
+          name: agent-config
+      - name: agent-logs
+        emptyDir: {}
+      securityContext:
+        fsGroup: 1000
+
+---
+# Code Analyst Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: code-analyst-service
+  namespace: revoagent-agents
+  labels:
+    app: code-analyst-agent
+    tier: agent
+spec:
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+  - name: metrics
+    port: 8001
+    targetPort: 8001
+  selector:
+    app: code-analyst-agent
+
+---
+# Debug Detective Agent Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: debug-detective-agent
+  namespace: revoagent-agents
+  labels:
+    app: debug-detective-agent
+    tier: agent
+    agent-type: debug-detective
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: debug-detective-agent
+  template:
+    metadata:
+      labels:
+        app: debug-detective-agent
+        tier: agent
+        agent-type: debug-detective
+    spec:
+      containers:
+      - name: debug-detective
+        image: revoagent/debug-detective:latest
+        ports:
+        - containerPort: 8000
+        - containerPort: 8001
+        env:
+        - name: AGENT_TYPE
+          value: "debug_detective"
+        - name: AGENT_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: REDIS_URL
+          value: "redis://agent-redis:6379"
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: agent-secrets
+              key: redis-password
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: agent-secrets
+              key: jwt-secret
+        - name: MODEL_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agent-secrets
+              key: model-api-key
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: METRICS_ENABLED
+          value: "true"
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
+        volumeMounts:
+        - name: agent-config
+          mountPath: /app/config
+        - name: agent-logs
+          mountPath: /app/logs
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+      volumes:
+      - name: agent-config
+        configMap:
+          name: agent-config
+      - name: agent-logs
+        emptyDir: {}
+      securityContext:
+        fsGroup: 1000
+
+---
+# Debug Detective Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: debug-detective-service
+  namespace: revoagent-agents
+  labels:
+    app: debug-detective-agent
+    tier: agent
+spec:
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+  - name: metrics
+    port: 8001
+    targetPort: 8001
+  selector:
+    app: debug-detective-agent
+
+---
+# Workflow Manager Agent Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workflow-manager-agent
+  namespace: revoagent-agents
+  labels:
+    app: workflow-manager-agent
+    tier: agent
+    agent-type: workflow-manager
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: workflow-manager-agent
+  template:
+    metadata:
+      labels:
+        app: workflow-manager-agent
+        tier: agent
+        agent-type: workflow-manager
+    spec:
+      containers:
+      - name: workflow-manager
+        image: revoagent/workflow-manager:latest
+        ports:
+        - containerPort: 8000
+        - containerPort: 8001
+        env:
+        - name: AGENT_TYPE
+          value: "workflow_manager"
+        - name: AGENT_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: REDIS_URL
+          value: "redis://agent-redis:6379"
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: agent-secrets
+              key: redis-password
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: agent-secrets
+              key: jwt-secret
+        - name: MODEL_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agent-secrets
+              key: model-api-key
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: METRICS_ENABLED
+          value: "true"
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "2Gi"
+        volumeMounts:
+        - name: agent-config
+          mountPath: /app/config
+        - name: agent-logs
+          mountPath: /app/logs
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+      volumes:
+      - name: agent-config
+        configMap:
+          name: agent-config
+      - name: agent-logs
+        emptyDir: {}
+      securityContext:
+        fsGroup: 1000
+
+---
+# Workflow Manager Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: workflow-manager-service
+  namespace: revoagent-agents
+  labels:
+    app: workflow-manager-agent
+    tier: agent
+spec:
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+  - name: metrics
+    port: 8001
+    targetPort: 8001
+  selector:
+    app: workflow-manager-agent
+
+---
+# Coordinator Agent Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coordinator-agent
+  namespace: revoagent-agents
+  labels:
+    app: coordinator-agent
+    tier: agent
+    agent-type: coordinator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: coordinator-agent
+  template:
+    metadata:
+      labels:
+        app: coordinator-agent
+        tier: agent
+        agent-type: coordinator
+    spec:
+      containers:
+      - name: coordinator
+        image: revoagent/coordinator:latest
+        ports:
+        - containerPort: 8000
+        - containerPort: 8001
+        env:
+        - name: AGENT_TYPE
+          value: "coordinator"
+        - name: AGENT_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: REDIS_URL
+          value: "redis://agent-redis:6379"
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: agent-secrets
+              key: redis-password
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: agent-secrets
+              key: jwt-secret
+        - name: MODEL_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agent-secrets
+              key: model-api-key
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: METRICS_ENABLED
+          value: "true"
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "2Gi"
+        volumeMounts:
+        - name: agent-config
+          mountPath: /app/config
+        - name: agent-logs
+          mountPath: /app/logs
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+      volumes:
+      - name: agent-config
+        configMap:
+          name: agent-config
+      - name: agent-logs
+        emptyDir: {}
+      securityContext:
+        fsGroup: 1000
+
+---
+# Coordinator Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: coordinator-service
+  namespace: revoagent-agents
+  labels:
+    app: coordinator-agent
+    tier: agent
+spec:
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+  - name: metrics
+    port: 8001
+    targetPort: 8001
+  selector:
+    app: coordinator-agent
+
+---
+# Multi-Agent Chat Orchestrator
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: multi-agent-chat
+  namespace: revoagent-agents
+  labels:
+    app: multi-agent-chat
+    tier: orchestrator
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: multi-agent-chat
+  template:
+    metadata:
+      labels:
+        app: multi-agent-chat
+        tier: orchestrator
+    spec:
+      containers:
+      - name: chat-orchestrator
+        image: revoagent/multi-agent-chat:latest
+        ports:
+        - containerPort: 8000
+        - containerPort: 8765  # WebSocket port
+        env:
+        - name: REDIS_URL
+          value: "redis://agent-redis:6379"
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: agent-secrets
+              key: redis-password
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: agent-secrets
+              key: jwt-secret
+        - name: CODE_ANALYST_URL
+          value: "http://code-analyst-service:8000"
+        - name: DEBUG_DETECTIVE_URL
+          value: "http://debug-detective-service:8000"
+        - name: WORKFLOW_MANAGER_URL
+          value: "http://workflow-manager-service:8000"
+        - name: COORDINATOR_URL
+          value: "http://coordinator-service:8000"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: METRICS_ENABLED
+          value: "true"
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
+        volumeMounts:
+        - name: agent-config
+          mountPath: /app/config
+        - name: chat-logs
+          mountPath: /app/logs
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+      volumes:
+      - name: agent-config
+        configMap:
+          name: agent-config
+      - name: chat-logs
+        emptyDir: {}
+      securityContext:
+        fsGroup: 1000
+
+---
+# Multi-Agent Chat Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: multi-agent-chat-service
+  namespace: revoagent-agents
+  labels:
+    app: multi-agent-chat
+    tier: orchestrator
+spec:
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+  - name: websocket
+    port: 8765
+    targetPort: 8765
+  selector:
+    app: multi-agent-chat
+
+---
+# Horizontal Pod Autoscaler for Code Analyst
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: code-analyst-hpa
+  namespace: revoagent-agents
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: code-analyst-agent
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# Horizontal Pod Autoscaler for Debug Detective
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: debug-detective-hpa
+  namespace: revoagent-agents
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: debug-detective-agent
+  minReplicas: 1
+  maxReplicas: 8
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# Network Policy for Agent Communication
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: agent-network-policy
+  namespace: revoagent-agents
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: revoagent-agents
+    - namespaceSelector:
+        matchLabels:
+          name: revoagent-main
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: revoagent-agents
+    - namespaceSelector:
+        matchLabels:
+          name: revoagent-main
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+
+---
+# ServiceMonitor for Prometheus
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: agent-metrics
+  namespace: revoagent-agents
+  labels:
+    app: revoagent-agents
+spec:
+  selector:
+    matchLabels:
+      tier: agent
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics

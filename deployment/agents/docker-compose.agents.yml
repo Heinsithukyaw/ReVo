@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  # Multi-Agent Chat Orchestrator
+  multi-agent-chat:
+    build:
+      context: ../../
+      dockerfile: deployment/agents/Dockerfile.chat-orchestrator
+    container_name: revoagent-chat-orchestrator
+    restart: unless-stopped
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=info
+      - AGENT_TYPE=chat_orchestrator
+      - MODEL_MANAGER_URL=http://ai-model-manager:8002
+      - REDIS_URL=redis://redis:6379/3
+      - WEBSOCKET_ENABLED=true
+      - METRICS_ENABLED=true
+    ports:
+      - "8012:8000"
+      - "8013:8001"  # WebSocket port
+    volumes:
+      - agent_logs:/app/logs
+      - agent_cache:/app/cache
+      - chat_sessions:/app/sessions
+    networks:
+      - revoagent-agents
+    depends_on:
+      - redis
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 8G
+        reservations:
+          cpus: '2.0'
+          memory: 4G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Redis for Agent Communication
+  redis:
+    image: redis:7-alpine
+    container_name: revoagent-agent-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - agent_redis_data:/data
+    networks:
+      - revoagent-agents
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  agent_logs:
+    driver: local
+  agent_cache:
+    driver: local
+  agent_redis_data:
+    driver: local
+  chat_sessions:
+    driver: local
+
+networks:
+  revoagent-agents:
+    driver: bridge

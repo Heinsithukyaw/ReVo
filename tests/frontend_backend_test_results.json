@@ -1,0 +1,177 @@
+{
+  "Frontend Accessibility": {
+    "result": {
+      "Main Dashboard": {
+        "status": "accessible",
+        "size": 117
+      },
+      "Static Dashboard": {
+        "status": "accessible",
+        "size": 78007
+      },
+      "DeepSeek Test Page": {
+        "status": "accessible",
+        "size": 32801
+      },
+      "Dashboard JavaScript": {
+        "status": "accessible",
+        "size": 8830
+      },
+      "Dashboard CSS": {
+        "status": "accessible",
+        "size": 456
+      }
+    },
+    "time_taken": 0.019908428192138672,
+    "status": "success"
+  },
+  "Model Management API": {
+    "result": {
+      "status_check": {
+        "success": true,
+        "data": {
+          "models": {
+            "deepseek-r1-0528": {
+              "id": "deepseek-r1-0528",
+              "name": "DeepSeek R1 0528",
+              "type": "deepseek-r1",
+              "size": "70B",
+              "status": "error",
+              "memory_usage": 0.0,
+              "gpu_memory": 0.0,
+              "performance_score": 94.0,
+              "last_used": null,
+              "error_message": "Failed to load model"
+            },
+            "llama-3.2-8b": {
+              "id": "llama-3.2-8b",
+              "name": "Llama 3.2 8B",
+              "type": "llama",
+              "size": "8B",
+              "status": "unloaded",
+              "memory_usage": 0.0,
+              "gpu_memory": 0.0,
+              "performance_score": 78.0,
+              "last_used": null,
+              "error_message": null
+            }
+          },
+          "system_stats": {
+            "cpu_percent": 9.3,
+            "memory_percent": 21.2,
+            "memory_used_gb": 2.9427947998046875,
+            "memory_total_gb": 15.611473083496094,
+            "loaded_models": 0,
+            "active_model": null
+          },
+          "active_model": null,
+          "timestamp": "2025-06-07T21:21:52.860697"
+        },
+        "status_code": 200,
+        "response_time": 1.001868
+      },
+      "model_load": {
+        "success": true,
+        "data": {
+          "model_name": "deepseek-r1-0528",
+          "status": "failed",
+          "message": "Model deepseek-r1-0528 failed to load",
+          "timestamp": "2025-06-07T21:21:53.663029"
+        },
+        "status_code": 200,
+        "response_time": 0.801451
+      }
+    },
+    "time_taken": 1.804734230041504,
+    "status": "success"
+  },
+  "Code Generation API": {
+    "result": {
+      "Simple FastAPI App": {
+        "success": true,
+        "model_used": "Mock Generator (Model Load Failed)",
+        "quality_score": 94.2,
+        "code_length": 2418,
+        "time_taken": 0.7086522579193115,
+        "files_created": [
+          "models.py"
+        ]
+      },
+      "React Dashboard": {
+        "success": true,
+        "model_used": "Mock Generator (Model Load Failed)",
+        "quality_score": 94.2,
+        "code_length": 536,
+        "time_taken": 1.1073648929595947,
+        "files_created": [
+          "main.py",
+          "requirements.txt",
+          "README.md"
+        ]
+      },
+      "Microservice with Monitoring": {
+        "success": true,
+        "model_used": "Mock Generator (Model Load Failed)",
+        "quality_score": 94.2,
+        "code_length": 2442,
+        "time_taken": 0.7053258419036865,
+        "files_created": [
+          "models.py"
+        ]
+      }
+    },
+    "time_taken": 2.522095203399658,
+    "status": "success"
+  },
+  "Dashboard API": {
+    "result": {
+      "Dashboard Stats": {
+        "success": true,
+        "response_time": 1.002114,
+        "data_size": 906
+      },
+      "Analytics Data": {
+        "success": true,
+        "response_time": 0.001274,
+        "data_size": 749
+      },
+      "Projects": {
+        "success": true,
+        "response_time": 0.001052,
+        "data_size": 894
+      },
+      "Workflows": {
+        "success": true,
+        "response_time": 0.000994,
+        "data_size": 806
+      },
+      "Monitoring Data": {
+        "success": true,
+        "response_time": 0.001055,
+        "data_size": 767
+      }
+    },
+    "time_taken": 1.0094490051269531,
+    "status": "success"
+  },
+  "Async Loading Simulation": {
+    "result": {
+      "concurrent_requests": 3,
+      "successful_requests": 3,
+      "total_time": 2.21058988571167,
+      "average_time_per_request": 0.7368632952372233
+    },
+    "time_taken": 2.210780382156372,
+    "status": "success"
+  },
+  "WebSocket Integration": {
+    "result": {
+      "success": true,
+      "messages_received": 1,
+      "message_types": [
+        "connection_established"
+      ]
+    },
+    "status": "success"
+  }
+}
