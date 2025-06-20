@@ -24,7 +24,7 @@
   }
   
   .glass-medium {
-    @apply bg-white/15 backdrop-blur-xl border border-white/25 shadow-glass-lg;
+    @apply bg-white/10 backdrop-blur-xl border border-white/25 shadow-glass-lg;
   }
   
   .glass-heavy {
@@ -36,7 +36,7 @@
   }
   
   .glass-card {
-    @apply glass rounded-glass p-6 transition-all duration-300 hover:bg-white/15 hover:shadow-glass-lg;
+    @apply glass rounded-glass p-6 transition-all duration-300 hover:bg-white/20 hover:shadow-glass-lg;
   }
   
   .glass-panel {
@@ -48,7 +48,7 @@
   }
   
   .glass-input {
-    @apply glass rounded-lg px-3 py-2 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/30 focus:bg-white/15 transition-all duration-200;
+    @apply glass rounded-lg px-3 py-2 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/30 focus:bg-white/20 transition-all duration-200;
   }
   
   .glass-sidebar {

@@ -69,6 +69,11 @@ class EnhancedAPIService {
   }
 
   private detectBackendURL(): string {
+    // Use environment variable if available
+    if (import.meta.env.VITE_API_URL) {
+      return import.meta.env.VITE_API_URL as string;
+    }
+    
     // Development detection
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       return 'http://localhost:12001';
@@ -167,11 +172,39 @@ class EnhancedAPIService {
   connectWebSocket(): Promise<WebSocket> {
     return new Promise((resolve, reject) => {
       try {
-        const wsURL = this.baseURL.replace('http', 'ws') + '/ws/chat';
+        // Use environment variable for WebSocket URL if available
+        let wsURL = '';
+        if (import.meta.env.VITE_WS_URL) {
+          wsURL = `${import.meta.env.VITE_WS_URL}/ws/chat`;
+        } else {
+          wsURL = this.baseURL.replace('http', 'ws') + '/ws/chat';
+        }
+        
+        console.log(`Connecting to WebSocket at: ${wsURL}`);
+        
+        // Close existing connection if any
+        if (this.wsConnection) {
+          this.wsConnection.close();
+          this.wsConnection = null;
+        }
+        
         this.wsConnection = new WebSocket(wsURL);
 
+        // Set a connection timeout
+        const connectionTimeout = setTimeout(() => {
+          if (this.wsConnection?.readyState !== WebSocket.OPEN) {
+            console.error('WebSocket connection timeout');
+            reject(new Error('WebSocket connection timeout'));
+            if (this.wsConnection) {
+              this.wsConnection.close();
+              this.wsConnection = null;
+            }
+          }
+        }, 5000); // 5 second timeout
+
         this.wsConnection.onopen = () => {
-          console.log('WebSocket connected');
+          console.log('WebSocket connected successfully');
+          clearTimeout(connectionTimeout);
           resolve(this.wsConnection!);
         };
 
@@ -184,17 +217,20 @@ class EnhancedAPIService {
           }
         };
 
-        this.wsConnection.onclose = () => {
-          console.log('WebSocket disconnected');
+        this.wsConnection.onclose = (event) => {
+          console.log(`WebSocket disconnected, code: ${event.code}, reason: ${event.reason}`);
+          clearTimeout(connectionTimeout);
           this.wsConnection = null;
         };
 
         this.wsConnection.onerror = (error) => {
           console.error('WebSocket error:', error);
+          clearTimeout(connectionTimeout);
           reject(error);
         };
 
       } catch (error) {
+        console.error('WebSocket initialization error:', error);
         reject(error);
       }
     });
@@ -269,10 +305,35 @@ class EnhancedAPIService {
   async testConnection(): Promise<{ connected: boolean; latency?: number; error?: string }> {
     const startTime = Date.now();
     try {
-      await this.getHealth();
-      const latency = Date.now() - startTime;
-      return { connected: true, latency };
+      // Try multiple endpoints to ensure backend is truly connected
+      try {
+        // First try health endpoint
+        const health = await this.getHealth();
+        const latency = Date.now() - startTime;
+        
+        // Verify LLM status specifically
+        if (health.llm_status && health.llm_status.status === 'not_initialized') {
+          console.warn('LLM service not fully initialized, but backend is available');
+          return { 
+            connected: true, 
+            latency,
+            error: 'LLM service not fully initialized. Some features may be limited.'
+          };
+        }
+        
+        return { connected: true, latency };
+      } catch (healthError) {
+        // If health check fails, try a simpler endpoint
+        console.warn('Health check failed, trying fallback endpoint', healthError);
+        const response = await fetch(`${this.baseURL}/api/health`);
+        if (response.ok) {
+          const latency = Date.now() - startTime;
+          return { connected: true, latency };
+        }
+        throw healthError; // Re-throw if both checks fail
+      }
     } catch (error) {
+      console.error('Connection test failed:', error);
       return { 
         connected: false, 
         error: error instanceof Error ? error.message : 'Unknown error' 
@@ -373,16 +434,63 @@ export const validateChatRequest = (request: ChatRequest): string[] => {
 
 // Connection status monitoring
 export class ConnectionMonitor {
-  private checkInterval: number = 30000; // 30 seconds
+  private checkInterval: number = 15000; // 15 seconds (more frequent checks)
   private intervalId: NodeJS.Timeout | null = null;
-  private listeners: Set<(status: boolean) => void> = new Set();
+  private listeners: Set<(status: boolean, details?: any) => void> = new Set();
+  private currentStatus: boolean = false;
+  private consecutiveFailures: number = 0;
+  private maxConsecutiveFailures: number = 3;
+  
+  constructor() {
+    // Check connection immediately on creation
+    this.checkConnection();
+  }
+
+  async checkConnection() {
+    try {
+      const result = await enhancedApiService.testConnection();
+      const newStatus = result.connected;
+      
+      // Reset failure count on success
+      if (newStatus) {
+        this.consecutiveFailures = 0;
+      } else {
+        this.consecutiveFailures++;
+      }
+      
+      // Only trigger status change if:
+      // 1. Status changed from true to false immediately
+      // 2. Status changed from false to true immediately
+      // 3. For false status, we've had enough consecutive failures
+      if (this.currentStatus !== newStatus && 
+          (newStatus || this.consecutiveFailures >= this.maxConsecutiveFailures)) {
+        this.currentStatus = newStatus;
+        this.listeners.forEach(listener => listener(newStatus, result));
+      }
+      
+      return newStatus;
+    } catch (error) {
+      console.error('Connection check failed:', error);
+      this.consecutiveFailures++;
+      
+      if (this.currentStatus && this.consecutiveFailures >= this.maxConsecutiveFailures) {
+        this.currentStatus = false;
+        this.listeners.forEach(listener => 
+          listener(false, { connected: false, error: 'Connection check failed' }));
+      }
+      
+      return false;
+    }
+  }
 
   start() {
     if (this.intervalId) return;
 
-    this.intervalId = setInterval(async () => {
-      const connected = await enhancedApiService.checkConnection();
-      this.listeners.forEach(listener => listener(connected));
+    // Check connection immediately
+    this.checkConnection();
+    
+    this.intervalId = setInterval(() => {
+      this.checkConnection();
     }, this.checkInterval);
   }
 
@@ -393,12 +501,24 @@ export class ConnectionMonitor {
     }
   }
 
-  addListener(callback: (status: boolean) => void) {
+  addListener(callback: (status: boolean, details?: any) => void) {
     this.listeners.add(callback);
+    // Immediately notify with current status
+    if (this.listeners.size === 1) {
+      this.start();
+    }
   }
 
-  removeListener(callback: (status: boolean) => void) {
+  removeListener(callback: (status: boolean, details?: any) => void) {
     this.listeners.delete(callback);
+    // Stop monitoring if no listeners
+    if (this.listeners.size === 0) {
+      this.stop();
+    }
+  }
+  
+  getCurrentStatus(): boolean {
+    return this.currentStatus;
   }
 }
 

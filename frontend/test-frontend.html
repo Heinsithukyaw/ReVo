@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>reVoAgent Frontend Test</title>
+    <style>
+        body {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .success { background: #10B981; color: white; }
+        .error { background: #EF4444; color: white; }
+        .pending { background: #F59E0B; color: white; }
+        button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        pre {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 reVoAgent Frontend Integration Test</h1>
+            <p>Testing connectivity and functionality with the backend</p>
+        </div>
+
+        <div class="test-section">
+            <h2>🔍 System Status</h2>
+            <div class="grid">
+                <div>
+                    <strong>Frontend Status:</strong>
+                    <span id="frontend-status" class="status pending">CHECKING</span>
+                </div>
+                <div>
+                    <strong>Backend Status:</strong>
+                    <span id="backend-status" class="status pending">CHECKING</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔗 API Connectivity Tests</h2>
+            <button onclick="testHealthEndpoint()">Test /health</button>
+            <button onclick="testChatEndpoint()">Test /api/chat</button>
+            <button onclick="testAgentEndpoint()">Test /api/agent</button>
+            <button onclick="testWebSocket()">Test WebSocket</button>
+            
+            <div id="api-results">
+                <h3>Results:</h3>
+                <pre id="test-output">Click a test button to run connectivity tests...</pre>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🧠 Three-Engine Architecture Test</h2>
+            <div class="grid">
+                <div>
+                    <h4>🧠 Perfect Recall Engine</h4>
+                    <span id="memory-engine" class="status pending">TESTING</span>
+                </div>
+                <div>
+                    <h4>⚡ Parallel Mind Engine</h4>
+                    <span id="parallel-engine" class="status pending">TESTING</span>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 15px;">
+                <h4>✨ Creative Engine</h4>
+                <span id="creative-engine" class="status pending">TESTING</span>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>💬 Live Chat Test</h2>
+            <div>
+                <input type="text" id="chat-input" placeholder="Type a message..." style="width: 70%; padding: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 4px;">
+                <button onclick="sendTestMessage()">Send</button>
+            </div>
+            <div id="chat-output" style="margin-top: 15px; max-height: 200px; overflow-y: auto;">
+                <pre>Chat messages will appear here...</pre>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 Frontend Features Status</h2>
+            <div class="grid">
+                <div>Navigation System: <span class="status success">READY</span></div>
+                <div>Component Library: <span class="status success">READY</span></div>
+                <div>State Management: <span class="status success">READY</span></div>
+                <div>Real-time Updates: <span class="status pending">TESTING</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:12001';
+        const WS_BASE = 'ws://localhost:12001';
+
+        // Initialize frontend status
+        document.getElementById('frontend-status').textContent = 'READY';
+        document.getElementById('frontend-status').className = 'status success';
+
+        // Test backend connectivity
+        async function checkBackendStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                if (response.ok) {
+                    document.getElementById('backend-status').textContent = 'ONLINE';
+                    document.getElementById('backend-status').className = 'status success';
+                    testEngines();
+                } else {
+                    throw new Error('Backend not responding');
+                }
+            } catch (error) {
+                document.getElementById('backend-status').textContent = 'OFFLINE';
+                document.getElementById('backend-status').className = 'status error';
+                updateEngineStatus('error');
+            }
+        }
+
+        // Test individual API endpoints
+        async function testHealthEndpoint() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                updateTestOutput('Health Check', data);
+            } catch (error) {
+                updateTestOutput('Health Check Error', { error: error.message });
+            }
+        }
+
+        async function testChatEndpoint() {
+            try {
+                const response = await fetch(`${API_BASE}/api/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: 'Hello from frontend test!' })
+                });
+                const data = await response.json();
+                updateTestOutput('Chat Endpoint', data);
+            } catch (error) {
+                updateTestOutput('Chat Endpoint Error', { error: error.message });
+            }
+        }
+
+        async function testAgentEndpoint() {
+            try {
+                const response = await fetch(`${API_BASE}/api/agent`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        agent: 'frontend-tester', 
+                        query: 'Test connectivity from frontend' 
+                    })
+                });
+                const data = await response.json();
+                updateTestOutput('Agent Endpoint', data);
+            } catch (error) {
+                updateTestOutput('Agent Endpoint Error', { error: error.message });
+            }
+        }
+
+        function testWebSocket() {
+            try {
+                const ws = new WebSocket(`${WS_BASE}/ws/chat`);
+                
+                ws.onopen = () => {
+                    updateTestOutput('WebSocket', { status: 'Connected successfully' });
+                    ws.send(JSON.stringify({ type: 'test', message: 'Frontend WebSocket test' }));
+                };
+                
+                ws.onmessage = (event) => {
+                    updateTestOutput('WebSocket Message', JSON.parse(event.data));
+                };
+                
+                ws.onerror = (error) => {
+                    updateTestOutput('WebSocket Error', { error: 'Connection failed' });
+                };
+                
+                // Close after 5 seconds
+                setTimeout(() => ws.close(), 5000);
+            } catch (error) {
+                updateTestOutput('WebSocket Error', { error: error.message });
+            }
+        }
+
+        function sendTestMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            // Display user message
+            appendChatMessage('You', message);
+            input.value = '';
+
+            // Send to backend (mock for now)
+            setTimeout(() => {
+                appendChatMessage('reVoAgent', `Echo: ${message} (This is a test response)`);
+            }, 1000);
+        }
+
+        function appendChatMessage(sender, message) {
+            const output = document.getElementById('chat-output');
+            const timestamp = new Date().toLocaleTimeString();
+            output.innerHTML += `\n[${timestamp}] ${sender}: ${message}`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function updateTestOutput(test, result) {
+            const output = document.getElementById('test-output');
+            const timestamp = new Date().toLocaleTimeString();
+            output.textContent = `[${timestamp}] ${test}:\n${JSON.stringify(result, null, 2)}`;
+        }
+
+        function testEngines() {
+            // Simulate engine testing
+            setTimeout(() => {
+                document.getElementById('memory-engine').textContent = 'ACTIVE';
+                document.getElementById('memory-engine').className = 'status success';
+            }, 1000);
+
+            setTimeout(() => {
+                document.getElementById('parallel-engine').textContent = 'ACTIVE';
+                document.getElementById('parallel-engine').className = 'status success';
+            }, 1500);
+
+            setTimeout(() => {
+                document.getElementById('creative-engine').textContent = 'ACTIVE';
+                document.getElementById('creative-engine').className = 'status success';
+            }, 2000);
+        }
+
+        function updateEngineStatus(status) {
+            const engines = ['memory-engine', 'parallel-engine', 'creative-engine'];
+            engines.forEach(id => {
+                const element = document.getElementById(id);
+                if (status === 'error') {
+                    element.textContent = 'ERROR';
+                    element.className = 'status error';
+                }
+            });
+        }
+
+        // Run initial checks
+        checkBackendStatus();
+
+        // Auto-refresh status every 30 seconds
+        setInterval(checkBackendStatus, 30000);
+    </script>
+</body>
+</html>

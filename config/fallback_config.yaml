@@ -1,0 +1,119 @@
+###############################################
+# reVoAgent - LLM Fallback Configuration
+###############################################
+
+# Fallback system configuration
+fallback_system:
+  # Enable the fallback system
+  enabled: true
+  # Automatic switching between models
+  auto_switch: true
+  # Max retry attempts when primary model fails
+  max_retries: 3
+  # Timeout in seconds before switching to fallback
+  timeout: 10
+
+# Local models configuration
+local_models:
+  # DeepSeek R1 GGUF 
+  deepseek_r1_gguf:
+    enabled: true
+    path: "models/deepseek-r1-q4.gguf"
+    # Supported formats: gguf, ggml, onnx
+    format: "gguf"
+    # Whether to auto-download if not found
+    auto_download: true
+    # Memory requirements
+    min_ram_gb: 8
+    recommended_ram_gb: 16
+    # Quantization for memory efficiency
+    quantization: "q4_0"
+    # Inference parameters
+    max_tokens: 4096
+    temperature: 0.7
+    top_p: 0.9
+    context_window: 8192
+
+  # Llama 3 8B GGUF for lower resource environments
+  llama_3_8b_gguf:
+    enabled: true
+    path: "models/llama-3-8b-q4.gguf"
+    format: "gguf"
+    auto_download: true
+    min_ram_gb: 6
+    recommended_ram_gb: 12
+    quantization: "q4_0"
+    max_tokens: 4096
+    temperature: 0.7
+    top_p: 0.9
+    context_window: 8192
+
+# API-based fallback models configuration
+api_fallbacks:
+  # Primary API model
+  primary:
+    provider: "deepseek"
+    model_name: "deepseek-coder"
+    api_key_env: "DEEPSEEK_API_KEY"
+    priority: 1
+    enabled: true
+    
+  # Secondary fallbacks
+  secondary:
+    - provider: "openai"
+      model_name: "gpt-4o-mini"
+      api_key_env: "OPENAI_API_KEY"
+      priority: 2
+      enabled: true
+      
+    - provider: "anthropic"
+      model_name: "claude-instant"
+      api_key_env: "ANTHROPIC_API_KEY" 
+      priority: 3
+      enabled: false
+      
+    - provider: "gemini"
+      model_name: "gemini-pro"
+      api_key_env: "GEMINI_API_KEY"
+      priority: 4
+      enabled: false
+
+# System behavior configuration
+behavior:
+  # Strategy for selecting fallback models
+  # Options: sequential, lowest_latency, lowest_cost, best_performance
+  selection_strategy: "sequential"
+  
+  # Whether to record fallback events for analytics
+  record_fallbacks: true
+  
+  # Whether to provide details about fallbacks in responses
+  expose_fallback_info: true
+  
+  # Maximum allowed API cost per request ($)
+  max_cost_per_request: 0.05
+  
+  # How to handle persistent failures across all models
+  persistent_failure_strategy: "degrade"  # Options: fail, degrade, retry_later
+
+# Intelligent routing rules
+routing_rules:
+  # Route requests based on content type
+  content_based:
+    - pattern: "code|programming|function|algorithm"
+      preferred_models: ["deepseek-r1-gguf", "deepseek-coder"]
+      
+    - pattern: "creative|story|write|content"
+      preferred_models: ["llama-3-8b-gguf", "claude-instant"]
+
+  # Resource-based routing
+  resource_based:
+    # Low memory mode (<8GB available RAM)
+    low_memory:
+      preferred_models: ["llama-3-8b-gguf", "gpt-4o-mini"]
+      max_tokens: 2048
+      
+    # Standard memory mode
+    standard_memory:
+      preferred_models: ["deepseek-r1-gguf", "deepseek-coder"]
+      max_tokens: 4096

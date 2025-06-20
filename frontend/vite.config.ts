@@ -43,9 +43,13 @@ export default defineConfig({
       }
     },
   },
-  // ADDED: Environment variable configuration
+  // ADDED: Environment variable configuration (SECURITY FIX)
   define: {
-    'process.env': process.env,
+    'process.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || 'http://localhost:12001'),
+    'process.env.VITE_WS_URL': JSON.stringify(process.env.VITE_WS_URL || 'ws://localhost:12001'),
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+    'process.env.VITE_ENABLE_LLM_FEATURES': JSON.stringify(process.env.VITE_ENABLE_LLM_FEATURES || 'true'),
+    'process.env.VITE_ENABLE_FALLBACK_SYSTEM': JSON.stringify(process.env.VITE_ENABLE_FALLBACK_SYSTEM || 'true'),
     __DEV__: JSON.stringify(true),
   },
   // ADDED: Build configuration for production

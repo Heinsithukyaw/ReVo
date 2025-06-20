@@ -36,28 +36,90 @@ const EnhancedChat: React.FC = () => {
 
   // Initialize connection and load data
   useEffect(() => {
+    // Initialize immediately
     initializeApp();
+    
+    // Set up periodic checking every 15 seconds
+    const intervalId = setInterval(() => {
+      checkConnection();
+    }, 15000);
+    
+    // Clean up interval on component unmount
+    return () => clearInterval(intervalId);
   }, []);
+  
+  // Separate connection check function for periodic health checks
+  const checkConnection = async () => {
+    try {
+      const connStatus = await enhancedApiService.testConnection();
+      
+      // Only update if status changed to avoid unnecessary re-renders
+      if (connStatus.connected !== connectionStatus.connected) {
+        setConnectionStatus(connStatus);
+        
+        if (connStatus.connected && !connectionStatus.connected) {
+          console.log('Connection restored, reloading data...');
+          await loadData();
+        }
+      }
+    } catch (error) {
+      console.error('Connection check failed:', error);
+      if (connectionStatus.connected) {
+        setConnectionStatus({ 
+          connected: false, 
+          error: error instanceof Error ? error.message : 'Connection check failed' 
+        });
+      }
+    }
+  };
+
+  // Separate function to load data after connection is established
+  const loadData = async () => {
+    try {
+      // Load health status
+      const health = await enhancedApiService.getHealth();
+      setHealthStatus(health);
+
+      // Load available models with retries
+      let retries = 0;
+      let models: ModelInfo[] = [];
+      
+      while (retries < 3 && models.length === 0) {
+        try {
+          models = await enhancedApiService.getAvailableModels();
+          if (models.length === 0) {
+            console.log(`No models found, retrying (${retries + 1}/3)...`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            retries++;
+          }
+        } catch (e) {
+          console.error(`Error loading models (attempt ${retries + 1}/3):`, e);
+          retries++;
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+      
+      setAvailableModels(models);
+
+      // Set default model if available
+      if (models.length > 0 && !models.find(m => m.id === selectedModel)) {
+        setSelectedModel(models[0].id);
+      }
+    } catch (error) {
+      console.error('Failed to load data:', error);
+    }
+  };
 
   const initializeApp = async () => {
     try {
-      // Test connection
+      // Test connection first
       const connStatus = await enhancedApiService.testConnection();
       setConnectionStatus(connStatus);
 
       if (connStatus.connected) {
-        // Load health status
-        const health = await enhancedApiService.getHealth();
-        setHealthStatus(health);
-
-        // Load available models
-        const models = await enhancedApiService.getAvailableModels();
-        setAvailableModels(models);
-
-        // Set default model if available
-        if (models.length > 0 && !models.find(m => m.id === selectedModel)) {
-          setSelectedModel(models[0].id);
-        }
+        await loadData();
+      } else {
+        console.warn('Backend disconnected, cannot load data');
       }
     } catch (error) {
       console.error('Failed to initialize app:', error);
