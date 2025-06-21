@@ -386,7 +386,7 @@ class EnhancedCodeGenerator:
                 test_code = await self.model_manager.generate_text(test_prompt)
                 progress.files_generated.extend([
                     "tests/", "README.md", "Dockerfile", 
-                    "docker-compose.yml", "requirements.txt", ".github/workflows/"
+                    "docker-compose.yml", "requirements.txt"
                 ])
                 progress.live_preview = self._generate_tests_preview(description, template)
             except Exception as e:
@@ -715,8 +715,8 @@ def test_login():
         
         # Add CI/CD files if tests phase is active
         if progress.phase_progress[CodeGenPhase.TESTS_DOCUMENTATION] > 0:
-            structure["ecommerce_api/"][".github/"] = {
-                "workflows/": ["ci.yml", "deploy.yml"]
+            structure["ecommerce_api/"]["ci/"] = {
+                "scripts/": ["test.sh", "deploy.sh"]
             }
         
         return structure

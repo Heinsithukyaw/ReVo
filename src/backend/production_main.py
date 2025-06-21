@@ -1327,10 +1327,10 @@ if __name__ == "__main__":
             # CI/CD files if cicd feature is selected
             if "cicd" in features:
                 files.extend([
-                    {"name": ".github", "type": "folder", "children": [
-                        {"name": "workflows", "type": "folder", "children": [
-                            {"name": "ci.yml", "type": "file", "size": "1.4 KB", "icon": "yaml", "path": "/.github/workflows/"},
-                            {"name": "deploy.yml", "type": "file", "size": "1.8 KB", "icon": "yaml", "path": "/.github/workflows/"},
+                    {"name": "ci", "type": "folder", "children": [
+                        {"name": "scripts", "type": "folder", "children": [
+                            {"name": "test.sh", "type": "file", "size": "1.4 KB", "icon": "bash", "path": "/ci/scripts/"},
+                            {"name": "deploy.sh", "type": "file", "size": "1.8 KB", "icon": "bash", "path": "/ci/scripts/"},
                         ]},
                     ]},
                 ])
